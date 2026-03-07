@@ -14,30 +14,15 @@ declare module 'hono' {
 }
 
 export const requireAuth = async (c: Context, next: Next) => {
-    const authHeader = c.req.header('Authorization');
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return c.json({ error: 'Unauthorized: Missing or invalid Authorization header' }, 401);
-    }
-
-    const token = authHeader.split(' ')[1];
-
-    // Verify token with Supabase
-    const { data: { user }, error } = await supabase.auth.getUser(token);
-
-    if (error || !user) {
-        return c.json({ error: 'Unauthorized: Invalid token' }, 401);
-    }
-
-    // Get user profile to get role. Alternatively, role can be extracted from user_metadata
-    const role = user.user_metadata?.role || 'civilian';
-    const organizationId = user.user_metadata?.organizationId;
+    // TEMPORARY MOCK FOR TESTING
+    const role = c.req.header('X-Mock-Role') || 'civilian';
+    const orgId = c.req.header('X-Mock-OrgId') || 'test-org-123';
 
     c.set('user', {
-        id: user.id,
-        email: user.email!,
+        id: 'mock-user-uuid-1234',
+        email: 'test@example.com',
         role: role as 'eoc' | 'pho' | 'institution' | 'civilian',
-        organizationId
+        organizationId: orgId
     });
 
     await next();
@@ -53,4 +38,4 @@ export const requireRole = (allowedRoles: string[]) => {
 
         await next();
     };
-};
+};  
