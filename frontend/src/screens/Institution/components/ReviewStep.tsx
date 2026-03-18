@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import { ErrorBanner } from "@/ui/ErrorBanner";
 
 interface ReviewRowProps {
     label: string;
@@ -105,9 +106,7 @@ export default function ReviewStep({ step1, step2, step3, step4, onEditStep, onS
                 } />
             </SectionCard>
 
-            {error && (
-                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600">{error}</div>
-            )}
+            {error && <ErrorBanner message={error} />}
 
             <div className="bg-blue-50 border border-blue-200 rounded-2xl px-5 py-3.5 text-xs text-blue-700 leading-relaxed">
                 By submitting, this application will be sent to Supabase and queued for MDCN database verification and manual admin review.
