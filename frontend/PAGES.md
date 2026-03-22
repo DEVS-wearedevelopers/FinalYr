@@ -1,6 +1,6 @@
 # MERMS Frontend — Page-by-Page Design Reference
 
-> **Purpose:** Complete design & interaction reference for every page in the MERMS (Medical Emergency Response & Management System) frontend. Copy this document into any design AI (Figma AI, Galileo, v0, Relume, etc.) to generate or refine screens.
+> **Pu rpose:** Complete design & interaction reference for every page in the MERMS (Medical Emergency Response & Management System) frontend. Copy this document into any design AI (Figma AI, Galileo, v0, Relume, etc.) to generate or refine screens.
 
 ---
 
