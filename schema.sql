@@ -8,6 +8,7 @@ CREATE TYPE user_role AS ENUM ('eoc', 'pho', 'institution', 'civilian');
 CREATE TYPE facility_status AS ENUM ('pending', 'approved', 'rejected', 'blacklisted');
 CREATE TYPE alert_status AS ENUM ('pending_investigation', 'investigating', 'probable', 'confirmed', 'invalidated');
 CREATE TYPE report_status AS ENUM ('Pending AI', 'Under PHO Review', 'Validated', 'Invalidated');
+CREATE TYPE advisory_severity AS ENUM ('ADVISORY', 'WARNING', 'CRITICAL');
 
 -- 2. Profiles Table (extends Supabase auth.users)
 CREATE TABLE public.profiles (
@@ -29,6 +30,8 @@ CREATE TABLE public.facilities (
     status facility_status DEFAULT 'pending'::facility_status NOT NULL,
     verified_at TIMESTAMP WITH TIME ZONE,
     blacklist_reason TEXT,
+    data_quality_score INTEGER DEFAULT 100,
+    last_report_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -73,6 +76,18 @@ CREATE TABLE public.response_protocols (
     content TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 7. Advisories Table
+CREATE TABLE public.advisories (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    facility_id UUID REFERENCES public.facilities(id),
+    zone_id TEXT NOT NULL,
+    message TEXT NOT NULL,
+    severity advisory_severity NOT NULL,
+    issued_by UUID REFERENCES public.profiles(id),
+    dismissed BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- ==============================================================

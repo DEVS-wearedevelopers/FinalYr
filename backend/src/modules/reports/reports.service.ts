@@ -42,6 +42,9 @@ export class ReportsService {
             throw new Error(`Database Error: ${error?.message || 'Failed to insert report'}`);
         }
 
+        // Update the facility's last_report_at timestamp
+        await this.reportsRepository.updateFacilityLastReportAt(user.organizationId);
+
         await this.calculateAndCreateAlert(user, data.id, patientCount, symptomMatrix);
         return data;
     }
@@ -122,9 +125,16 @@ export class ReportsService {
     }
 
     async getAnalytics(user: any) {
+        const analytics = await this.reportsRepository.getFacilityAnalytics(user.organizationId);
+        const advisory = await this.reportsRepository.getActiveAdvisory(user.organizationId);
+        
         return {
-            message: 'Analytics coming soon for medical directors',
-            organizationId: user.organizationId
+            ...analytics,
+            advisory: advisory ? {
+                active: true,
+                severity: advisory.severity === 'CRITICAL' ? 'red' : (advisory.severity === 'WARNING' ? 'amber' : 'blue'),
+                message: advisory.message
+            } : { active: false }
         };
     }
 }
