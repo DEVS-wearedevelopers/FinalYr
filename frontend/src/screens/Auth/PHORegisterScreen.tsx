@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiClient } from "@/services/apiClient";
+import { parseApiError } from "@/services/parseApiError";
+import { ErrorBanner } from "@/ui/ErrorBanner";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const BLOCKED_DOMAINS = ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "icloud.com", "aol.com"];
@@ -164,7 +166,7 @@ export default function PHORegisterScreen() {
     const [submitted, setSubmitted] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
-    const [apiError, setApiError] = useState("");
+    const [apiError, setApiError] = useState('');
 
     const [s1, setS1] = useState({ fullName: "", email: "", jurisdiction: "", clearanceLevel: "" });
     const [s2, setS2] = useState({ password: "", confirmPassword: "" });
@@ -201,7 +203,7 @@ export default function PHORegisterScreen() {
     const handleSubmit = async () => {
         if (!validate2()) return;
         setIsLoading(true);
-        setApiError("");
+        setApiError('');
         try {
             await apiClient.post("/auth/register", {
                 email: s1.email,
@@ -212,7 +214,7 @@ export default function PHORegisterScreen() {
             });
             setSubmitted(true);
         } catch (err: any) {
-            setApiError(err?.response?.data?.error || err?.message || "Registration failed. Please try again.");
+            setApiError(parseApiError(err));
         } finally {
             setIsLoading(false);
         }
@@ -400,9 +402,7 @@ export default function PHORegisterScreen() {
                                     </p>
                                 </div>
 
-                                {apiError && (
-                                    <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600">{apiError}</div>
-                                )}
+                                {apiError && <ErrorBanner message={apiError} onDismiss={() => setApiError('')} />}
                             </div>
                         )}
 

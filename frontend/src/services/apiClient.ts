@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Get base URL from env, or default to localhost:3000 if not set
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+// Get base URL from env, or default to local backend if not set
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 export const apiClient = axios.create({
     baseURL: API_URL,

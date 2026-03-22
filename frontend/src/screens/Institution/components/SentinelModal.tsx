@@ -93,8 +93,6 @@ export default function SentinelModal({ onClose, onSuccess }: { onClose: () => v
     const [rtime, setRtime] = useState(() => new Date().toISOString().slice(0, 16));
     const [syms, setSyms] = useState<string[]>([]);
     const [manualSev, setManualSev] = useState<number | null>(null);
-    const [pin, setPin] = useState('');
-    const [pinErr, setPinErr] = useState(false);
     const [loading, setLoading] = useState(false);
     const [rid, setRid] = useState('');
 
@@ -113,21 +111,13 @@ export default function SentinelModal({ onClose, onSuccess }: { onClose: () => v
         return 'Unknown';
     })();
 
-    useEffect(() => {
-        if (pin.length !== 4) return;
-        if (pin === '1234') {
-            setLoading(true);
-            (async () => {
-                const id = makeId();
-                try { await reportsService.submitReport({ patientCount: Number(count), originLocation: { lat: 0, lng: 0, address: loc }, symptomMatrix: syms, severity: sev * 2 }); }
-                catch { }
-                setRid(id); setStep('ok'); setLoading(false); onSuccess(id);
-            })();
-        } else {
-            setPinErr(true);
-            setTimeout(() => { setPin(''); setPinErr(false); }, 700);
-        }
-    }, [pin]);
+    const handleSubmit = async () => {
+        setLoading(true);
+        const id = makeId();
+        try { await reportsService.submitReport({ patientCount: Number(count), originLocation: { lat: 0, lng: 0, address: loc }, symptomMatrix: syms, severity: sev * 2 }); }
+        catch { }
+        setRid(id); setStep('ok'); setLoading(false); onSuccess(id);
+    };
 
     const goBack = () => {
         if (step === 2) setStep(1);
@@ -233,18 +223,9 @@ export default function SentinelModal({ onClose, onSuccess }: { onClose: () => v
                                 <p className="text-xs text-slate-400">{new Date(rtime).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}{isLate && ` · Reported ${latMin}m late`}</p>
                             </div>
                             <div className="space-y-3">
-                                <p className="text-sm font-bold text-slate-700 text-center flex items-center justify-center gap-2">
-                                    <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>
-                                    Enter your PIN to submit
+                                <p className="text-sm font-bold text-slate-700 text-center mb-4">
+                                    Please review the data above before submitting.
                                 </p>
-                                <div className="flex justify-center gap-3 py-1">
-                                    {[0, 1, 2, 3].map(i => (
-                                        <div key={i} className={`w-4 h-4 rounded-full border-2 transition-all duration-150 ${pinErr ? 'border-red-500 bg-red-500' : i < pin.length ? 'border-[#1e52f1] bg-[#1e52f1]' : 'border-slate-300'}`} />
-                                    ))}
-                                </div>
-                                {pinErr && <p className="text-xs text-red-500 text-center">Incorrect PIN. Try again.</p>}
-                                <Numpad value={pin} onChange={v => { if (v.length <= 4) setPin(v); }} />
-                                <p className="text-xs text-slate-400 text-center">Demo PIN: 1234</p>
                                 {loading && <div className="flex justify-center pt-2"><svg className="animate-spin w-6 h-6 text-[#1e52f1]" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg></div>}
                             </div>
                         </div>
@@ -265,7 +246,7 @@ export default function SentinelModal({ onClose, onSuccess }: { onClose: () => v
                                 <span className="w-2 h-2 rounded-full bg-slate-400 animate-pulse" />
                                 <span className="text-sm font-semibold text-slate-600">Pending AI Scan</span>
                             </div>
-                            <button onClick={() => { setStep(1); setCount(''); setSyms([]); setManualSev(null); setPin(''); }}
+                            <button onClick={() => { setStep(1); setCount(''); setSyms([]); setManualSev(null); }}
                                 className="w-full py-3.5 rounded-2xl bg-[#1e52f1] text-white font-bold text-sm hover:bg-[#123bb5] transition-all">
                                 + Start New Report
                             </button>
@@ -277,14 +258,19 @@ export default function SentinelModal({ onClose, onSuccess }: { onClose: () => v
                 {/* Footer nav */}
                 {step !== 'ok' && (
                     <div className="flex items-center gap-3 px-6 pb-6 pt-4 border-t border-slate-100">
-                        {step > 1 && <button onClick={goBack} className="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50">Back</button>}
+                        {step > 1 && <button onClick={goBack} disabled={loading} className="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">Back</button>}
                         <div className="flex-1" />
-                        {step < 3 && (
+                        {step < 3 ? (
                             <button onClick={() => setStep(s => s === 1 ? 2 : 3 as any)}
                                 disabled={step === 1 ? (!count || !loc) : syms.length === 0}
                                 className="px-6 py-2.5 rounded-xl bg-[#1e52f1] text-white text-sm font-bold hover:bg-[#123bb5] disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2">
                                 Continue
                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                            </button>
+                        ) : (
+                            <button onClick={handleSubmit} disabled={loading}
+                                className="px-6 py-2.5 rounded-xl bg-green-600 text-white text-sm font-bold hover:bg-green-700 disabled:opacity-50 flex items-center gap-2">
+                                {loading ? 'Submitting...' : 'Confirm & Submit'}
                             </button>
                         )}
                     </div>

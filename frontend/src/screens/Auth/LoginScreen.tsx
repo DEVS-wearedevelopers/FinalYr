@@ -7,6 +7,8 @@ import { AuthLayout } from '@/components/AuthLayout';
 import { Input } from '@/ui/Input';
 import { Button } from '@/ui/Button';
 import { apiClient } from '@/services/apiClient';
+import { parseApiError } from '@/services/parseApiError';
+import { ErrorBanner } from '@/ui/ErrorBanner';
 
 // ─── Dev Test Accounts ────────────────────────────────────────────────────────
 const TEST_ACCOUNTS = [
@@ -70,30 +72,45 @@ function DevLoginPanel({ onSelect }: { onSelect: (email: string, password: strin
     );
 }
 
+// ─── Role → dashboard map ─────────────────────────────────────────────────────
+const ROLE_REDIRECT: Record<string, string> = {
+    institution: '/dashboard/institution',
+    pho: '/dashboard/pho',
+    eoc: '/dashboard/eoc',
+    civilian: '/dashboard/civilian',
+};
+
 // ─── Login Screen ─────────────────────────────────────────────────────────────
 export default function LoginScreen() {
     const router = useRouter();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [errorMsg, setErrorMsg] = useState('');
+    const [apiErr, setApiErr] = useState('');
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const doLogin = async (loginEmail: string, loginPassword: string) => {
         setIsLoading(true);
-        setErrorMsg('');
-
+        setApiErr('');
         try {
-            const { data } = await apiClient.post('/auth/login', { email, password });
+            const { data } = await apiClient.post('/auth/login', { email: loginEmail, password: loginPassword });
             if (data.session?.access_token) {
                 localStorage.setItem('token', data.session.access_token);
-                router.push('/dashboard');
+                // Route based on role returned by the server
+                const rawRole = data.user?.user_metadata?.role ?? (data.user?.role !== 'authenticated' ? data.user?.role : undefined);
+                const appRole: string = (rawRole || 'civilian').toLowerCase();
+                const dest = ROLE_REDIRECT[appRole] ?? '/dashboard/institution';
+                router.push(dest);
             }
         } catch (err: any) {
-            setErrorMsg(err.response?.data?.error || 'Failed to sign in. Please check your credentials.');
+            setApiErr(parseApiError(err));
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        await doLogin(email, password);
     };
 
     return (
@@ -102,11 +119,7 @@ export default function LoginScreen() {
             subheading="Enter your credentials to access your account."
         >
             <form onSubmit={handleSubmit} className="space-y-5">
-                {errorMsg && (
-                    <div className="p-3 rounded-lg bg-red-50 text-red-600 border border-red-200 text-sm">
-                        {errorMsg}
-                    </div>
-                )}
+                {apiErr && <ErrorBanner message={apiErr} onDismiss={() => setApiErr('')} />}
 
                 <Input
                     label="Email address"
@@ -148,7 +161,7 @@ export default function LoginScreen() {
 
             {/* ── Dev Quick Login ── */}
             <div className="mt-5">
-                <DevLoginPanel onSelect={(e, p) => { setEmail(e); setPassword(p); setErrorMsg(''); }} />
+                <DevLoginPanel onSelect={(e, p) => { setEmail(e); setPassword(p); setApiErr(''); doLogin(e, p); }} />
             </div>
 
             <div className="text-center mt-5">
