@@ -6,13 +6,25 @@ import { DashboardLayout } from '@/components/DashboardLayout';
 const ZoneMap = dynamic(() => import('./components/EOCZoneMap'), { ssr: false });
 
 // ── Mock data ──────────────────────────────────────────────────────────────────
-const ZONES = [
-    { id: 'sw', name: 'South West', status: 'critical', alerts: 14, pho: 'Dr. Ngozi Adeyemi', facilities: 142, silent: 3, center: [7.1, 3.5] as [number, number] },
-    { id: 'ne', name: 'North East', status: 'warning', alerts: 7, pho: 'Dr. Aisha Zanna', facilities: 98, silent: 1, center: [11.8, 13.2] as [number, number] },
-    { id: 'nc', name: 'North Central', status: 'warning', alerts: 5, pho: 'Dr. James Yakubu', facilities: 87, silent: 0, center: [9.1, 7.4] as [number, number] },
-    { id: 'nw', name: 'North West', status: 'normal', alerts: 2, pho: 'Dr. Sadiq Maiwada', facilities: 115, silent: 2, center: [12.0, 7.3] as [number, number] },
-    { id: 'se', name: 'South East', status: 'normal', alerts: 1, pho: 'Dr. Emeka Chukwu', facilities: 76, silent: 0, center: [6.4, 7.5] as [number, number] },
-    { id: 'ss', name: 'South South', status: 'warning', alerts: 6, pho: 'Dr. Blessing Okafor', facilities: 89, silent: 1, center: [4.8, 7.0] as [number, number] },
+type ZoneStatus = 'normal' | 'warning' | 'critical';
+interface ZoneData {
+    id: string;
+    name: string;
+    status: ZoneStatus;
+    alerts: number;
+    pho?: string;
+    facilities?: number;
+    silent?: number;
+    center: [number, number];
+}
+
+const ZONES: ZoneData[] = [
+    { id: 'sw', name: 'South West', status: 'critical', alerts: 14, pho: 'Dr. Ngozi Adeyemi', facilities: 142, silent: 3, center: [7.1, 3.5] },
+    { id: 'ne', name: 'North East', status: 'warning', alerts: 7, pho: 'Dr. Aisha Zanna', facilities: 98, silent: 1, center: [11.8, 13.2] },
+    { id: 'nc', name: 'North Central', status: 'warning', alerts: 5, pho: 'Dr. James Yakubu', facilities: 87, silent: 0, center: [9.1, 7.4] },
+    { id: 'nw', name: 'North West', status: 'normal', alerts: 2, pho: 'Dr. Sadiq Maiwada', facilities: 115, silent: 2, center: [12.0, 7.3] },
+    { id: 'se', name: 'South East', status: 'normal', alerts: 1, pho: 'Dr. Emeka Chukwu', facilities: 76, silent: 0, center: [6.4, 7.5] },
+    { id: 'ss', name: 'South South', status: 'warning', alerts: 6, pho: 'Dr. Blessing Okafor', facilities: 89, silent: 1, center: [4.8, 7.0] },
 ];
 const FACILITIES = [
     { id: 'f1', name: 'Lagos University Teaching Hospital', zone: 'South West', status: 'Verified', reliability: 94 },
@@ -131,7 +143,7 @@ const NAV = [
 ];
 
 export default function EOCDashboard() {
-    const [selectedZone, setSelectedZone] = useState<typeof ZONES[0] | null>(null);
+    const [selectedZone, setSelectedZone] = useState<ZoneData | null>(null);
     const [facilities, setFacilities] = useState(FACILITIES);
     const [phos, setPhos] = useState(PHOS);
     const [blacklistTarget, setBlacklistTarget] = useState<typeof FACILITIES[0] | null>(null);
@@ -141,7 +153,7 @@ export default function EOCDashboard() {
     const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3500); };
 
     const totalAlerts = ZONES.reduce((s, z) => s + z.alerts, 0);
-    const silentNodes = ZONES.reduce((s, z) => s + z.silent, 0);
+    const silentNodes = ZONES.reduce((s, z) => s + (z.silent ?? 0), 0);
     const pendingApps = facilities.filter(f => f.status === 'Pending').length;
 
     return (
@@ -185,7 +197,7 @@ export default function EOCDashboard() {
                 </div>
                 <div className="flex">
                     <div className="flex-1" style={{ height: 380 }}>
-                        <ZoneMap zones={ZONES} onZoneClick={setSelectedZone} />
+                        <ZoneMap zones={ZONES} onZoneClick={(zone) => setSelectedZone(zone as ZoneData)} />
                     </div>
                     {selectedZone && (
                         <div className="w-72 border-l border-slate-100 p-5 space-y-4">

@@ -24,6 +24,10 @@ export class ReportsService {
 
         const { patientCount, originLocation, symptomMatrix, severity, notes } = result.data;
 
+        if (!user.organizationId) {
+            throw new Error('Facility not linked: Your account has no facility/organization assigned. Contact your EOC administrator.');
+        }
+
         const { data, error } = await this.reportsRepository.insertSentinelReport({
             submitted_by: user.id,
             organization_id: user.organizationId,

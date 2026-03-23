@@ -7,6 +7,9 @@ interface Zone {
     status: 'critical' | 'warning' | 'normal';
     alerts: number;
     center: [number, number];
+    pho?: string;
+    facilities?: number;
+    silent?: number;
 }
 
 interface EOCZoneMapProps {

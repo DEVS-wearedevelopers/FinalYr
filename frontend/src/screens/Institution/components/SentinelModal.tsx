@@ -95,12 +95,14 @@ export default function SentinelModal({ onClose, onSuccess }: { onClose: () => v
     const [manualSev, setManualSev] = useState<number | null>(null);
     const [loading, setLoading] = useState(false);
     const [rid, setRid] = useState('');
+    const [submitError, setSubmitError] = useState<string | null>(null);
 
     const auto = autoSev(syms);
     const sev = manualSev ?? auto.score;
     const critical = auto.critical;
     const latMin = Math.max(0, Math.round((Date.now() - new Date(rtime + ':00').getTime()) / 60000));
     const isLate = latMin > 2;
+    const stepNum: number = step === 'ok' ? 3 : step;
 
     const toggle = (s: string) => setSyms(p => p.includes(s) ? p.filter(x => x !== s) : [...p, s]);
     const dominant = (() => {
@@ -113,10 +115,24 @@ export default function SentinelModal({ onClose, onSuccess }: { onClose: () => v
 
     const handleSubmit = async () => {
         setLoading(true);
+        setSubmitError(null);
         const id = makeId();
-        try { await reportsService.submitReport({ patientCount: Number(count), originLocation: { lat: 0, lng: 0, address: loc }, symptomMatrix: syms, severity: sev * 2 }); }
-        catch { }
-        setRid(id); setStep('ok'); setLoading(false); onSuccess(id);
+        try {
+            await reportsService.submitReport({
+                patientCount: Number(count),
+                originLocation: { lat: 0, lng: 0, address: loc },
+                symptomMatrix: syms,
+                severity: sev * 2,
+            });
+            setRid(id);
+            setStep('ok');
+            onSuccess(id);
+        } catch (err: any) {
+            const msg = err?.response?.data?.error || err?.response?.data?.details || err?.message || 'Submission failed. Please try again.';
+            setSubmitError(msg);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const goBack = () => {
@@ -135,7 +151,7 @@ export default function SentinelModal({ onClose, onSuccess }: { onClose: () => v
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex gap-1.5">
                                 {([1, 2, 3] as const).map(s => (
-                                    <div key={s} className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${(step === 'ok' ? 3 : step as number) >= s ? (critical && step === 2 ? 'bg-white text-red-600' : 'bg-[#1e52f1] text-white') : 'bg-slate-100 text-slate-400'}`}>{s}</div>
+                                    <div key={s} className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${stepNum >= s ? (critical && step === 2 ? 'bg-white text-red-600' : 'bg-[#1e52f1] text-white') : 'bg-slate-100 text-slate-400'}`}>{s}</div>
                                 ))}
                             </div>
                             <button onClick={onClose} className={`w-8 h-8 rounded-xl flex items-center justify-center ${critical && step === 2 ? 'bg-red-500 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
@@ -227,6 +243,11 @@ export default function SentinelModal({ onClose, onSuccess }: { onClose: () => v
                                     Please review the data above before submitting.
                                 </p>
                                 {loading && <div className="flex justify-center pt-2"><svg className="animate-spin w-6 h-6 text-[#1e52f1]" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg></div>}
+                                {submitError && (
+                                    <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                                        ⚠ {submitError}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}

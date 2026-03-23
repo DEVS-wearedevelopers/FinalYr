@@ -2,12 +2,10 @@
 
 > **Pu rpose:** Complete design & interaction reference for every page in the MERMS (Medical Emergency Response & Management System) frontend. Copy this document into any design AI (Figma AI, Galileo, v0, Relume, etc.) to generate or refine screens.
 
----
-
-## Design System
-
+-------------------------------------------------------
+## Design System ##
 | Token | Value |
-|--|--|
+|--|--|--|
 | **Primary colour** | `#1e52f1` (electric blue) |
 | **Background** | `#ffffff` (white) / `#f8fafc` (slate-50 for dashboard body) |
 | **Text — primary** | `#0f172a` slate-900 |

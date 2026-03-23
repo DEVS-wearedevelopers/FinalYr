@@ -1,11 +1,5 @@
 import { apiClient } from './apiClient';
 
-// Temporary mock headers until real JWT auth is wired
-const mockHeaders = {
-    'X-Mock-Role': 'institution',
-    'X-Mock-OrgId': 'test-org-123',
-};
-
 export interface SubmitReportPayload {
     patientCount: number;
     originLocation: {
@@ -31,16 +25,12 @@ export interface SentinelReport {
 
 export const reportsService = {
     async submitReport(payload: SubmitReportPayload) {
-        const { data } = await apiClient.post('/reports', payload, {
-            headers: mockHeaders,
-        });
+        const { data } = await apiClient.post('/reports', payload);
         return data;
     },
 
     async getReportsFeed(): Promise<SentinelReport[]> {
-        const { data } = await apiClient.get('/reports/feed', {
-            headers: mockHeaders,
-        });
+        const { data } = await apiClient.get('/reports/feed');
         return data.reports ?? [];
     },
 };

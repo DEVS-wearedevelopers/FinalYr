@@ -9,5 +9,11 @@ if (!supabaseUrl || !supabaseKey) {
     console.warn('Missing SUPABASE_URL or SUPABASE_KEY in environment variables');
 }
 
-// We use service role key for admin tasks when needed, otherwise anon.
-export const supabase = createClient(supabaseUrl, supabaseKey);
+// Use Node's native fetch instead of undici (the auth-js default) which
+// was causing ConnectTimeoutErrors in this environment.
+export const supabase = createClient(supabaseUrl, supabaseKey, {
+    global: {
+        fetch: (...args) => globalThis.fetch(...args),
+    },
+});
+

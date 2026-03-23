@@ -149,10 +149,11 @@ export default function CivilianNotifications() {
                 <p className="text-slate-600 font-medium mb-8 text-center max-w-sm leading-relaxed">
                     Sign in with your university or regional email to manage notifications.
                 </p>
-                <Link href="/login" passHref legacyBehavior>
-                    <Button as="a">
-                        Sign In
-                    </Button>
+                <Link
+                    href="/login"
+                    className="inline-flex items-center justify-center font-medium transition-all duration-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 bg-[#1e52f1] text-white hover:bg-[#123bb5] shadow-sm shadow-[#1e52f1]/20 focus:ring-[#1e52f1] px-6 py-3"
+                >
+                    Sign In
                 </Link>
             </div>
         );
@@ -228,9 +229,10 @@ export default function CivilianNotifications() {
                     <p className="text-sm text-slate-500 mb-5">Subscribe to regions outside your primary location to receive specific broadcast updates.</p>
                     
                     <div className="relative mb-5">
-                        <Input 
-                            type="text" 
-                            placeholder="Type a zone name..." 
+                        <Input
+                            label="Search zone"
+                            type="text"
+                            placeholder="Type a zone name..."
                             value={zoneQuery}
                             onChange={(e) => setZoneQuery(e.target.value)}
                         />
