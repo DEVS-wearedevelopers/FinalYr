@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Get base URL from env, or default to local backend if not set
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://merms-backend.onrender.com';
 
 export const apiClient = axios.create({
     baseURL: API_URL,
