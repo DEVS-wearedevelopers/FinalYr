@@ -70,6 +70,21 @@ export class AuthService {
             throw new Error(`Login Error: ${error?.message || 'Invalid credentials'}`);
         }
 
+        // ── Ensure profile row exists (critical for seeded/demo users) ──────────
+        // On first login for seeded users, profile may not exist — upsert it
+        // so role-based access control works immediately without re-seeding.
+        const meta = data.user.user_metadata ?? {};
+        if (meta.role && meta.role !== 'civilian') {
+            await this.authRepository.upsertProfile({
+                id: data.user.id,
+                email: data.user.email ?? email,
+                role: meta.role,
+                first_name: meta.firstName ?? null,
+                last_name:  meta.lastName  ?? null,
+                organization_id: meta.organizationId ?? null,
+            });
+        }
+
         return {
             session: data.session,
             user: data.user

@@ -12,22 +12,46 @@ export interface AiAlert {
     created_at: string;
     investigated_by?: string;
     investigated_at?: string;
-    // Joined from sentinel_reports
+    // Joined from sentinel_reports — normalised from array to object
     sentinel_reports?: {
         patient_count: number;
         symptom_matrix: string[];
         origin_address?: string;
         organization_id: string;
+        // Nested join — institution name
+        institution_registrations?: {
+            facility_name: string;
+            state?: string;
+            city?: string;
+        } | null;
     } | null;
 }
 
 export type AlertStatusUpdate = 'probable' | 'confirmed' | 'invalidated';
 
+// PostgREST returns joined rows as arrays — flatten to single object
+// symptom_matrix is jsonb in DB — coerce to string[] safely
+function normaliseAlert(raw: any): AiAlert {
+    const sr = raw.sentinel_reports;
+    const report = Array.isArray(sr) ? (sr[0] ?? null) : (sr ?? null);
+    if (report) {
+        // Flatten nested institution_registrations array → object
+        if (Array.isArray(report.institution_registrations)) {
+            report.institution_registrations = report.institution_registrations[0] ?? null;
+        }
+        // jsonb symptom_matrix → string[]
+        if (report.symptom_matrix && !Array.isArray(report.symptom_matrix)) {
+            report.symptom_matrix = Object.values(report.symptom_matrix as Record<string, string>);
+        }
+    }
+    return { ...raw, sentinel_reports: report };
+}
+
 export const alertsService = {
-    /** PHO: Get all pending alerts in the PHO's zone, sorted by CBS score */
+    /** PHO: Get all alerts (no zone filter — all PHOs see all alerts for demo) */
     async getInbox(): Promise<AiAlert[]> {
         const { data } = await apiClient.get('/alerts/inbox');
-        return data.inbox ?? [];
+        return (data.inbox ?? []).map(normaliseAlert);
     },
 
     /** PHO: Claim an alert for investigation */
@@ -42,9 +66,9 @@ export const alertsService = {
         return data.alert;
     },
 
-    /** PHO: Trigger a broadcast to civilians in zone */
-    async broadcast(): Promise<{ message: string }> {
-        const { data } = await apiClient.post('/alerts/broadcast');
+    /** PHO: Trigger a broadcast (persisted to advisories — institutions see in Inbox) */
+    async broadcast(message?: string): Promise<{ message: string }> {
+        const { data } = await apiClient.post('/alerts/broadcast', message ? { message } : {});
         return data;
     },
 
@@ -57,7 +81,7 @@ export const alertsService = {
     /** Civilian: Get local health alerts by GPS coordinates */
     async getLocalAlerts(lat: number, lng: number): Promise<AiAlert[]> {
         const { data } = await apiClient.get('/alerts/local', { params: { lat, lng } });
-        return data.alerts ?? [];
+        return (data.alerts ?? []).map(normaliseAlert);
     },
 
     /** Public: Get national health trends */

@@ -12,4 +12,8 @@ export class AuthRepository {
     async signInWithPassword(credentials: any) {
         return await supabase.auth.signInWithPassword(credentials);
     }
+
+    async upsertProfile(profileData: any) {
+        return await supabase.from('profiles').upsert([profileData], { onConflict: 'id' });
+    }
 }

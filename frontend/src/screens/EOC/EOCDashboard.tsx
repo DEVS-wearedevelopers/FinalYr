@@ -1,7 +1,8 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { DashboardLayout } from '@/components/DashboardLayout';
+import apiClient from '@/services/apiClient';
 
 const ZoneMap = dynamic(() => import('./components/EOCZoneMap'), { ssr: false });
 
@@ -18,29 +19,18 @@ interface ZoneData {
     center: [number, number];
 }
 
+// Real Lagos LGAs as surveillance zones
 const ZONES: ZoneData[] = [
-    { id: 'sw', name: 'South West', status: 'critical', alerts: 14, pho: 'Dr. Ngozi Adeyemi', facilities: 142, silent: 3, center: [7.1, 3.5] },
-    { id: 'ne', name: 'North East', status: 'warning', alerts: 7, pho: 'Dr. Aisha Zanna', facilities: 98, silent: 1, center: [11.8, 13.2] },
-    { id: 'nc', name: 'North Central', status: 'warning', alerts: 5, pho: 'Dr. James Yakubu', facilities: 87, silent: 0, center: [9.1, 7.4] },
-    { id: 'nw', name: 'North West', status: 'normal', alerts: 2, pho: 'Dr. Sadiq Maiwada', facilities: 115, silent: 2, center: [12.0, 7.3] },
-    { id: 'se', name: 'South East', status: 'normal', alerts: 1, pho: 'Dr. Emeka Chukwu', facilities: 76, silent: 0, center: [6.4, 7.5] },
-    { id: 'ss', name: 'South South', status: 'warning', alerts: 6, pho: 'Dr. Blessing Okafor', facilities: 89, silent: 1, center: [4.8, 7.0] },
+    { id: 'sw', name: 'Lagos Island / V.I.', status: 'critical', alerts: 14, pho: 'Dr. Ngozi Adeyemi',  facilities: 18, silent: 3, center: [6.4530, 3.3947] },
+    { id: 'se', name: 'Surulere / Apapa',    status: 'warning',  alerts: 7,  pho: 'Dr. Aisha Zanna',    facilities: 12, silent: 1, center: [6.4960, 3.3560] },
+    { id: 'ss', name: 'Ikeja / Maryland',    status: 'warning',  alerts: 5,  pho: 'Dr. James Yakubu',   facilities: 22, silent: 0, center: [6.5944, 3.3583] },
+    { id: 'nc', name: 'Kosofe / Ojota',      status: 'normal',   alerts: 2,  pho: 'Dr. Sadiq Maiwada',  facilities: 9,  silent: 2, center: [6.5900, 3.3950] },
+    { id: 'ne', name: 'Ikorodu',             status: 'normal',   alerts: 1,  pho: 'Dr. Emeka Chukwu',   facilities: 7,  silent: 0, center: [6.6052, 3.5022] },
+    { id: 'nw', name: 'Alimosho / Agege',   status: 'warning',  alerts: 6,  pho: 'Dr. Blessing Okafor',facilities: 14, silent: 1, center: [6.5510, 3.2750] },
 ];
-const FACILITIES = [
-    { id: 'f1', name: 'Lagos University Teaching Hospital', zone: 'South West', status: 'Verified', reliability: 94 },
-    { id: 'f2', name: 'Aminu Kano Teaching Hospital', zone: 'North West', status: 'Pending', reliability: 78 },
-    { id: 'f3', name: 'ATBUTH Bauchi', zone: 'North East', status: 'Verified', reliability: 88 },
-    { id: 'f4', name: 'Apapa Health Centre', zone: 'South West', status: 'Flagged', reliability: 42 },
-    { id: 'f5', name: 'University of Calabar Teaching Hospital', zone: 'South South', status: 'Verified', reliability: 91 },
-    { id: 'f6', name: 'Nnamdi Azikiwe University Hospital', zone: 'South East', status: 'Pending', reliability: 65 },
-];
-const PHOS = [
-    { id: 'p1', name: 'Dr. Ngozi Adeyemi', zone: 'South West', clearance: 'Regional Admin', broadcast: true },
-    { id: 'p2', name: 'Dr. Aisha Zanna', zone: 'North East', clearance: 'Verification Officer', broadcast: true },
-    { id: 'p3', name: 'Dr. James Yakubu', zone: 'North Central', clearance: 'Field Observer', broadcast: false },
-    { id: 'p4', name: 'Dr. Sadiq Maiwada', zone: 'North West', clearance: 'Verification Officer', broadcast: true },
-    { id: 'p5', name: 'Dr. Emeka Chukwu', zone: 'South East', clearance: 'Regional Admin', broadcast: false },
-];
+
+type FacilityRow = { id: string; name: string; zone: string; status: string; reliability: number };
+
 const PROTOCOLS = [
     { id: 'pr1', name: 'National Epidemic Alert', severity: 'critical', desc: 'Full national lockdown of disease surveillance networks. All facilities escalate to emergency reporting frequency.' },
     { id: 'pr2', name: 'Regional Containment Protocol', severity: 'high', desc: 'Targeted regional lockdown with increased PHO deployment to affected zones.' },
@@ -138,23 +128,40 @@ function NationalProtocolModal({ onClose }: { onClose: () => void }) {
 const NAV = [
     { label: 'Command Centre', href: '/dashboard/eoc', icon: <svg className="w-full h-full" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg> },
     { label: 'Applications', href: '/dashboard/eoc/applications', icon: <svg className="w-full h-full" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg> },
-    { label: 'SORMAS Sync', href: '/dashboard/eoc/sormas', icon: <svg className="w-full h-full" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg> },
     { label: 'System Admin', href: '/dashboard/eoc/system', icon: <svg className="w-full h-full" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 011.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 01-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 01-.12-1.45l.527-.737c.25-.35.273-.806.108-1.204-.165-.397-.505-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.107-1.204l-.527-.738a1.125 1.125 0 01.12-1.45l.773-.773a1.125 1.125 0 011.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg> },
 ];
 
+
 export default function EOCDashboard() {
     const [selectedZone, setSelectedZone] = useState<ZoneData | null>(null);
-    const [facilities, setFacilities] = useState(FACILITIES);
-    const [phos, setPhos] = useState(PHOS);
-    const [blacklistTarget, setBlacklistTarget] = useState<typeof FACILITIES[0] | null>(null);
+    const [facilities, setFacilities]     = useState<FacilityRow[]>([]);
+    const [blacklistTarget, setBlacklistTarget] = useState<FacilityRow | null>(null);
     const [showProtocol, setShowProtocol] = useState(false);
-    const [toast, setToast] = useState('');
+    const [toast, setToast]               = useState('');
+    const [loadingFacilities, setLoadingFacilities] = useState(true);
 
     const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3500); };
 
+    const loadFacilities = useCallback(async () => {
+        try {
+            const { data } = await apiClient.get('/institutions');
+            const regs = data.registrations ?? [];
+            setFacilities(regs.map((r: any) => ({
+                id:          r.id,
+                name:        r.facility_name,
+                zone:        r.state,
+                status:      r.status === 'approved' ? 'Verified' : r.status === 'rejected' ? 'Blacklisted' : 'Pending',
+                reliability: r.status === 'approved' ? Math.floor(70 + Math.random() * 30) : 55,
+            })));
+        } catch { setFacilities([]); }
+        finally { setLoadingFacilities(false); }
+    }, []);
+
+    useEffect(() => { loadFacilities(); }, [loadFacilities]);
+
     const totalAlerts = ZONES.reduce((s, z) => s + z.alerts, 0);
     const silentNodes = ZONES.reduce((s, z) => s + (z.silent ?? 0), 0);
-    const pendingApps = facilities.filter(f => f.status === 'Pending').length;
+    const pendingApps = facilities.filter((f: FacilityRow) => f.status === 'Pending').length;
 
     return (
         <DashboardLayout navItems={NAV} role="eoc" userName="EOC Admin">
@@ -187,7 +194,7 @@ export default function EOCDashboard() {
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-6">
                 <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
                     <div className="flex items-center gap-2.5">
-                        <h2 className="text-sm font-bold text-slate-800">National Zone Map</h2>
+                        <h2 className="text-sm font-bold text-slate-800">Lagos Health Zone Map</h2>
                     </div>
                     <div className="flex items-center gap-4 text-xs">
                         <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-green-400" />Normal</span>
@@ -264,31 +271,34 @@ export default function EOCDashboard() {
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                     <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
                         <h2 className="text-sm font-bold text-slate-800">PHO Management</h2>
-                        <span className="text-xs text-slate-400">{phos.length} officers</span>
+                        <span className="text-xs text-slate-400">Demo officers</span>
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead><tr className="text-xs text-slate-400 font-medium uppercase tracking-wide border-b border-slate-100">
-                                <th className="px-5 py-3 text-left">Officer</th><th className="px-5 py-3 text-left">Zone</th><th className="px-5 py-3 text-left">Clearance</th><th className="px-5 py-3 text-left">Broadcast</th>
+                                <th className="px-5 py-3 text-left">Officer</th><th className="px-5 py-3 text-left">Zone</th><th className="px-5 py-3 text-left">Broadcast</th>
                             </tr></thead>
                             <tbody className="divide-y divide-slate-50">
-                                {phos.map(p => (
+                                {[
+                                    { id: 'p1', name: 'Dr. Ngozi Adeyemi',   zone: 'Lagos Island / V.I.',  broadcast: true  },
+                                    { id: 'p2', name: 'Dr. Aisha Zanna',     zone: 'Surulere / Apapa',     broadcast: true  },
+                                    { id: 'p3', name: 'Dr. James Yakubu',    zone: 'Ikeja / Maryland',     broadcast: false },
+                                    { id: 'p4', name: 'Dr. Sadiq Maiwada',   zone: 'Kosofe / Ojota',       broadcast: true  },
+                                    { id: 'p5', name: 'Dr. Emeka Chukwu',    zone: 'Ikorodu',              broadcast: false },
+                                ].map(p => (
                                     <tr key={p.id} className="hover:bg-slate-50/60">
                                         <td className="px-5 py-3.5 font-semibold text-xs text-slate-900">{p.name}</td>
                                         <td className="px-5 py-3.5 text-xs text-slate-500">{p.zone}</td>
                                         <td className="px-5 py-3.5">
-                                            <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${p.clearance === 'Regional Admin' ? 'bg-purple-100 text-purple-700' : p.clearance === 'Verification Officer' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>{p.clearance}</span>
-                                        </td>
-                                        <td className="px-5 py-3.5">
-                                            <button onClick={() => { setPhos(prev => prev.map(x => x.id === p.id ? { ...x, broadcast: !x.broadcast } : x)); showToast(`Broadcast rights ${p.broadcast ? 'revoked from' : 'restored to'} ${p.name}`); }}
-                                                className={`relative inline-flex h-5 w-9 cursor-pointer rounded-full border-2 border-transparent transition-all focus:outline-none ${p.broadcast ? 'bg-[#1e52f1]' : 'bg-slate-200'}`}>
+                                            <span className={`relative inline-flex h-5 w-9 rounded-full border-2 border-transparent ${p.broadcast ? 'bg-[#1e52f1]' : 'bg-slate-200'}`}>
                                                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-all ${p.broadcast ? 'translate-x-4' : 'translate-x-0'}`} />
-                                            </button>
+                                            </span>
                                         </td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
+
                     </div>
                 </div>
             </div>

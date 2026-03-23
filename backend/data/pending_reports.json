@@ -23,5 +23,29 @@
       "organizationId": "test-org-001"
     },
     "dbReportId": "4337582a-aa29-42b4-8189-14863654dea6"
+  },
+  {
+    "cacheId": "RPT-1774253236675-IHHQP",
+    "savedAt": "2026-03-23T08:07:16.675Z",
+    "status": "synced",
+    "payload": {
+      "patientCount": 5,
+      "originLocation": {
+        "lat": 0,
+        "lng": 0,
+        "address": "Hostel A"
+      },
+      "symptomMatrix": [
+        "Seizures"
+      ],
+      "severity": 8
+    },
+    "user": {
+      "id": "8b24106a-19c3-474d-b0c3-1397e7b5440a",
+      "email": "institution@merms.test",
+      "role": "institution",
+      "organizationId": "test-org-001"
+    },
+    "dbReportId": "3e77b6e6-cc1c-444d-af56-5281d17f22d0"
   }
 ]

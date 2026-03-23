@@ -36,4 +36,16 @@ export const institutionService = {
         const { data } = await apiClient.get(`/institutions/${id}`);
         return data.registration;
     },
+
+    /** Get the logged-in institution's own profile (requires institution auth) */
+    async getProfile() {
+        const { data } = await apiClient.get('/institutions/profile');
+        return data.profile;
+    },
+
+    /** Update editable fields on own profile */
+    async updateProfile(payload: Partial<InstitutionRegistrationPayload>) {
+        const { data } = await apiClient.patch('/institutions/profile', payload);
+        return data.profile;
+    },
 };

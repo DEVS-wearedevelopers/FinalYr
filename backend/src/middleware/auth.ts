@@ -14,52 +14,62 @@ declare module 'hono' {
 }
 
 export const requireAuth = async (c: Context, next: Next) => {
-    console.log(`\n\n[AUTH DEBUG] 🚀 NEW REQUEST to ${c.req.url}`);
     const authHeader = c.req.header('Authorization');
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        console.error('[AUTH DEBUG] ❌ Missing or invalid Authorization header');
         return c.json({ error: 'Unauthorized: Missing or invalid token format' }, 401);
     }
 
     const token = authHeader.split(' ')[1];
-    console.log(`[AUTH DEBUG] 🔑 Token extracted (first 15 chars): ${token.substring(0, 15)}...`);
 
     const { data: { user }, error } = await supabase.auth.getUser(token);
 
     if (error || !user) {
-        console.error('[AUTH DEBUG] ❌ Supabase auth.getUser error:', error?.message);
         return c.json({ error: `Unauthorized: Invalid token (${error?.message || 'No user'})` }, 401);
     }
 
-    console.log(`[AUTH DEBUG] ✅ User validated natively via Supabase! ID=${user.id}`);
-    console.log(`[AUTH DEBUG] 📦 User attached user_metadata:`, JSON.stringify(user.user_metadata));
+    // ── Role resolution priority ──────────────────────────────────────────────
+    // 1. profiles table (canonical, set by admin/seed)
+    // 2. user_metadata.role (set at registration, present in JWT claims)
+    // 3. app_metadata.role (set server-side, highest trust but rarely used)
+    // 4. Fall back to 'civilian'
 
-    // Fetch profile reliably from DB since user_metadata can sometimes be stale or missing
-    console.log(`[AUTH DEBUG] 🔍 Searching 'profiles' table for role/org definitions...`);
+    // Use maybeSingle() — never throws on empty result (vs single() which errors)
     const { data: profile, error: dbError } = await supabase
         .from('profiles')
         .select('role, organization_id')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
     if (dbError) {
-        console.error('[AUTH DEBUG] ⚠️ Failed fetching from profiles table:', dbError.message);
-    } else {
-        console.log(`[AUTH DEBUG] ✅ Profiles DB row matched! role='${profile?.role}', organization_id='${profile?.organization_id}'`);
+        console.warn(`[auth] profiles lookup error for ${user.id}: ${dbError.message}`);
     }
 
-    const rawRole = profile?.role || user.user_metadata?.role || 'civilian';
+    // Pull role from all possible locations, normalise to lowercase
+    const rawRole = (
+        profile?.role ||
+        user.user_metadata?.role ||
+        user.app_metadata?.role ||
+        'civilian'
+    );
+    const finalRole = String(rawRole).toLowerCase().trim() as 'eoc' | 'pho' | 'institution' | 'civilian';
+
+    // Pull org from profile or metadata fallback
     const orgId = profile?.organization_id || user.user_metadata?.organizationId;
 
-    const finalRole = String(rawRole).toLowerCase().trim();
-    console.log(`[AUTH DEBUG] 🎯 Final Computed Role: '${finalRole}', OrgId: '${orgId}'`);
+    if (!profile && finalRole !== 'civilian') {
+        console.warn(
+            `[auth] ⚠️  No profile row for ${user.email} (${user.id}) ` +
+            `— role resolved from token metadata as '${finalRole}'. ` +
+            `Re-run mock-data-seed.sql to populate profiles table.`
+        );
+    }
 
     c.set('user', {
         id: user.id,
         email: user.email!,
-        role: finalRole as 'eoc' | 'pho' | 'institution' | 'civilian',
-        organizationId: orgId
+        role: finalRole,
+        organizationId: orgId,
     });
 
     await next();
@@ -69,14 +79,16 @@ export const requireRole = (allowedRoles: string[]) => {
     return async (c: Context, next: Next) => {
         const user = c.get('user');
 
-        console.log(`[AUTH DEBUG] 🛡️ Route restricted to: [${allowedRoles.join(', ')}] | Requesting user is: '${user?.role}'`);
-
         if (!user || !allowedRoles.includes(user.role)) {
-            console.error(`[AUTH DEBUG] ❌ FORBIDDEN: User role '${user?.role}' is inherently blocked here!`);
-            return c.json({ error: `Forbidden: Insufficient permissions. User role is ${user?.role || 'none'} but requires ${allowedRoles.join(',')}` }, 403);
+            return c.json(
+                {
+                    error: `Forbidden: requires one of [${allowedRoles.join(', ')}], got '${user?.role || 'none'}'`,
+                    hint: 'If you just registered, log out and back in so your role is included in the token.',
+                },
+                403
+            );
         }
 
-        console.log(`[AUTH DEBUG] ✅ ACCESS GRANTED to route!`);
         await next();
     };
-};  
+};

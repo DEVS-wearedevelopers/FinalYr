@@ -12,8 +12,8 @@ export class AlertsService {
     constructor(private repo: AlertsRepository) {}
 
     async getInbox(user: any) {
-        syslog.info('PHO inbox requested', { module: MOD, userId: user.id, data: { organizationId: user.organizationId } });
-        const { data, error } = await this.repo.getPhoInbox(user.organizationId);
+        syslog.info('PHO inbox requested', { module: MOD, userId: user.id });
+        const { data, error } = await this.repo.getPhoInbox();
         if (error) {
             syslog.logModuleError(MOD, 'getInbox', 'DB error fetching PHO inbox', error);
             throw new Error(`Database Error: ${error.message}`);
@@ -46,10 +46,28 @@ export class AlertsService {
         return { status: result.data.status, data };
     }
 
-    async broadcastAlert(user: any) {
-        // Broadcast is a signal — actual civilian notification system to be integrated later
+    async broadcastAlert(user: any, message?: string) {
         syslog.info(`Broadcast triggered by PHO ${user.id}`, { module: MOD });
-        return { message: 'Broadcast initiated successfully. Civilians in your zone will be notified.' };
+
+        const advisoryText = message ||
+            'A health advisory has been issued by your Public Health Officer. Please stay alert and follow recommended hygiene practices.';
+
+        // Persist to advisories table so institutions see it in their Inbox
+        const { error } = await this.repo.insertAdvisory({
+            issued_by: user.id,
+            message:   advisoryText,
+            severity:  'ADVISORY',
+            zone_id:   'national',   // PHO broadcasts are system-wide
+            dismissed: false,
+        });
+
+        if (error) {
+            syslog.logModuleError(MOD, 'broadcastAlert', 'Failed to write advisory', error);
+            throw new Error(`Database Error: ${error.message}`);
+        }
+
+        syslog.info('Advisory persisted to DB', { module: MOD });
+        return { message: 'Broadcast sent. Institutions in your zone will see this in their Inbox.' };
     }
 
     async escalateAlert(alertId: string) {
@@ -62,10 +80,20 @@ export class AlertsService {
         return { message: 'Alert escalated to EOC for rapid response', alertId };
     }
 
+    async getPhoAdvisories() {
+        return await this.repo.getPhoAdvisories();
+    }
+
     async getLocalAlerts(lat: string, lng: string) {
         if (!lat || !lng) throw new Error('Validation failed: Missing coordinates');
-        // Spatial filtering to be implemented with PostGIS — returns confirmed alerts for now
-        return [];
+        // Spatial proximity filter requires PostGIS — currently returns all confirmed/probable alerts
+        syslog.info(`Civilian local alerts requested (lat=${lat}, lng=${lng})`, { module: MOD });
+        const { data, error } = await this.repo.getLocalAlerts();
+        if (error) {
+            syslog.logModuleError(MOD, 'getLocalAlerts', 'DB error', error);
+            throw new Error(`Database Error: ${error.message}`);
+        }
+        return data ?? [];
     }
 
     async getNationalTrends() {

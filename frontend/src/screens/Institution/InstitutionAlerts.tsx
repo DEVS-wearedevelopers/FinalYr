@@ -24,7 +24,15 @@ const STATUS_LABEL: Record<string, string> = {
     invalidated: 'Cleared',
 };
 
-type Alert = { id: string; cbs_score: number; severity_index: number; status: string; created_at: string; bypass_reason: string | null; sentinel_reports?: { patient_count: number; symptom_matrix: string[]; origin_address?: string } | null };
+type RawAlert = { id: string; cbs_score: number; severity_index: number; status: string; created_at: string; bypass_reason: string | null; sentinel_reports?: { patient_count: number; symptom_matrix: string[]; origin_address?: string } | { patient_count: number; symptom_matrix: string[]; origin_address?: string }[] | null };
+type Alert   = Omit<RawAlert, 'sentinel_reports'> & { sentinel_reports?: { patient_count: number; symptom_matrix: string[]; origin_address?: string } | null };
+
+// PostgREST returns sentinel_reports as an array when joined — normalise it
+function normalise(raw: RawAlert): Alert {
+    const sr = raw.sentinel_reports;
+    const report = Array.isArray(sr) ? sr[0] ?? null : sr ?? null;
+    return { ...raw, sentinel_reports: report };
+}
 
 export default function InstitutionAlerts() {
     const [alerts, setAlerts] = useState<Alert[]>([]);
@@ -34,7 +42,7 @@ export default function InstitutionAlerts() {
     const load = useCallback(async () => {
         try {
             const { data } = await apiClient.get('/reports/alerts');
-            setAlerts(data.alerts ?? []);
+            setAlerts((data.alerts ?? []).map(normalise));
         } catch { setAlerts([]); }
         finally { setLoading(false); }
     }, []);

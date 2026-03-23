@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 
@@ -17,6 +17,30 @@ interface DashboardLayoutProps {
     userName?: string;
 }
 
+// ── Dark mode hook ────────────────────────────────────────────────────────────
+function useDarkMode() {
+    const [dark, setDark] = useState(false);
+
+    useEffect(() => {
+        const saved = localStorage.getItem('merms-theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const initial = saved ? saved === 'dark' : prefersDark;
+        setDark(initial);
+        document.documentElement.classList.toggle('dark', initial);
+    }, []);
+
+    const toggle = () => {
+        setDark(d => {
+            const next = !d;
+            document.documentElement.classList.toggle('dark', next);
+            localStorage.setItem('merms-theme', next ? 'dark' : 'light');
+            return next;
+        });
+    };
+
+    return { dark, toggle };
+}
+
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
     children,
     navItems,
@@ -26,6 +50,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
     const router = useRouter();
     const pathname = usePathname();
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const { dark, toggle } = useDarkMode();
 
     const handleLogout = () => {
         localStorage.removeItem('token');
@@ -46,15 +71,31 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
     };
 
     const Sidebar = () => (
-        <aside className="flex flex-col h-full bg-white border-r border-slate-100 w-64 min-h-screen">
-            {/* Logo */}
+        <aside className="flex flex-col h-screen bg-white border-r border-slate-100 w-64 overflow-hidden">
+            {/* Logo + dark toggle */}
             <div className="flex items-center gap-3 px-6 py-5 border-b border-slate-100">
                 <div className="w-9 h-9 bg-[#1e52f1] rounded-xl flex items-center justify-center shadow-md shadow-[#1e52f1]/20">
                     <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12 2L2 22h20L12 2zm0 4.5l6.5 13h-13L12 6.5z" />
                     </svg>
                 </div>
-                <span className="font-bold text-lg tracking-tight text-slate-900">MERMS</span>
+                <span className="font-bold text-lg tracking-tight text-slate-900 flex-1">MERMS</span>
+                {/* Dark mode toggle */}
+                <button
+                    onClick={toggle}
+                    title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 transition-all"
+                >
+                    {dark ? (
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M19 12a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    ) : (
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                        </svg>
+                    )}
+                </button>
             </div>
 
             {/* User Badge */}
@@ -108,9 +149,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
     );
 
     return (
-        <div className="flex min-h-screen bg-slate-50 font-sans">
-            {/* Desktop Sidebar */}
-            <div className="hidden md:flex flex-col">
+        <div className="flex h-screen overflow-hidden bg-slate-50 font-sans">
+            {/* Desktop Sidebar — fixed, never scrolls */}
+            <div className="hidden md:flex flex-col flex-shrink-0">
                 <Sidebar />
             </div>
 
@@ -124,22 +165,22 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                 </div>
             )}
 
-            {/* Main Content */}
-            <div className="flex-1 flex flex-col min-w-0">
+            {/* Main Content — only this scrolls */}
+            <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
                 {/* Mobile Header */}
-                <header className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-slate-100">
+                <header className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-slate-100 flex-shrink-0">
                     <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-lg hover:bg-slate-100">
                         <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                         </svg>
                     </button>
                     <span className="font-bold text-slate-900 tracking-tight">MERMS</span>
-                    <div className="w-8 h-8 rounded-full bg-[#1e52f1] flex items-center justify-center text-white text-sm font-semibold">
-                        {userName.charAt(0).toUpperCase()}
-                    </div>
+                    <button onClick={toggle} className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100">
+                        {dark ? '☀️' : '🌙'}
+                    </button>
                 </header>
 
-                {/* Page Content */}
+                {/* Page Content — scrolls */}
                 <main className="flex-1 p-6 md:p-8 overflow-y-auto">
                     {children}
                 </main>

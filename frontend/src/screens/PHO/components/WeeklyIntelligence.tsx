@@ -3,32 +3,32 @@ import React, { useState } from 'react';
 
 // ── Mock data ──────────────────────────────────────────────────────────────────
 const REPORT = {
-    generatedAt: '2026-02-28T00:00:00Z',
-    zone: 'South West',
-    aiSummary: 'Respiratory cases in South West Zone increased 40% week-over-week, primarily driven by reports from Lagos General Hospital and Ikeja Teaching Hospital. Hemorrhagic indicators remain below outbreak threshold but show a consistent 3-week upward trend. No confirmed outbreak threshold was reached during this reporting period. Enteric cases appear stable relative to the 14-day baseline.',
+    generatedAt: '2026-03-23T00:00:00Z',
+    zone: 'Lagos Island / Surulere',
+    aiSummary: 'Respiratory cases in the Lagos Island / Surulere zone rose 40% week-over-week, primarily driven by sentinel reports from LUTH and Apapa General Hospital. The CBS cluster score for respiratory presentations reached 0.71 — approaching the 0.75 escalation threshold. Hemorrhagic indicators remain below outbreak threshold but show a consistent 3-week upward trajectory originating from Surulere Cottage Hospital. No confirmed outbreak threshold was crossed in this reporting period. Enteric activity appears stable relative to the 14-day baseline. PHO field dispatch to LUTH cluster recommended for Week 13.',
     topCategories: [
-        { label: 'Respiratory', count: 87, change: 40, facilities: 12 },
-        { label: 'Enteric', count: 44, change: -3, facilities: 8 },
-        { label: 'Hemorrhagic', count: 19, change: 15, facilities: 4 },
+        { label: 'Respiratory',  count: 89, change: 40, facilities: 7 },
+        { label: 'Enteric',      count: 41, change: -5, facilities: 5 },
+        { label: 'Hemorrhagic',  count: 19, change: 18, facilities: 3 },
     ],
     topFacilities: [
-        { name: 'Lagos General Hospital', reports: 23, area: 'Surulere' },
-        { name: 'Ikeja Teaching Hospital', reports: 18, area: 'Ikeja' },
-        { name: 'Apapa Health Centre', reports: 11, area: 'Apapa' },
-        { name: 'Badagry District Hospital', reports: 9, area: 'Badagry' },
-        { name: 'Alimosho General Hospital', reports: 7, area: 'Alimosho' },
+        { name: 'Lagos University Teaching Hospital (LUTH)', reports: 34, area: 'Surulere' },
+        { name: 'Apapa General Hospital',                    reports: 22, area: 'Apapa' },
+        { name: 'Lagos Island General Hospital',             reports: 17, area: 'Lagos Island' },
+        { name: 'Gbagada General Hospital',                  reports: 10, area: 'Gbagada' },
+        { name: 'Surulere Cottage Hospital',                 reports:  6, area: 'Surulere' },
     ],
     watchItems: [
-        { id: 'w1', facility: 'Surulere Cottage Hospital', category: 'Hemorrhagic', cbs: 0.34, note: 'Rash + fever cluster — 3 cases over 5 days. Below alert threshold.' },
-        { id: 'w2', facility: 'Ikorodu PHC', category: 'Neurological', cbs: 0.38, note: 'Headache and dizziness in 6 patients. No progression detected.' },
-        { id: 'w3', facility: 'Lagos Island General', category: 'Enteric', cbs: 0.29, note: 'Unusual vomiting spike on day 4. Self-resolved by day 7.' },
+        { id: 'w1', facility: 'Surulere Cottage Hospital',    category: 'Hemorrhagic',  cbs: 0.34, note: 'Rash + fever cluster — 3 cases over 5 days. Below alert threshold. Monitoring closely.' },
+        { id: 'w2', facility: 'St. Nicholas Hospital Lagos',  category: 'Neurological', cbs: 0.38, note: 'Headache and dizziness in 6 patients. No progression detected. Under observation.' },
+        { id: 'w3', facility: 'Lagos Island General Hospital',category: 'Enteric',      cbs: 0.29, note: 'Unusual vomiting spike on Day 4. Self-resolved by Day 7. No further action required.' },
     ],
     trend: {
-        weeks: ['W46', 'W47', 'W48', 'W49'],
+        weeks: ['W9', 'W10', 'W11', 'W12'],
         series: [
-            { label: 'Respiratory', color: '#3b82f6', data: [52, 61, 62, 87] },
-            { label: 'Enteric', color: '#f59e0b', data: [48, 45, 45, 44] },
-            { label: 'Hemorrhagic', color: '#ef4444', data: [12, 14, 16, 19] },
+            { label: 'Respiratory', color: '#3b82f6', data: [54, 63, 64, 89] },
+            { label: 'Enteric',     color: '#f59e0b', data: [47, 44, 43, 41] },
+            { label: 'Hemorrhagic', color: '#ef4444', data: [10, 13, 16, 19] },
         ],
     },
 };

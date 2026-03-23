@@ -1,8 +1,10 @@
 import { supabase } from '../../supabase.js';
 
 export class AlertsRepository {
-    /** PHO inbox: all alerts in the PHO's zone, CBS descending, with joined report data */
-    async getPhoInbox(zoneId: string) {
+    /** PHO inbox: all alerts globally.
+     *  NOTE: sentinel_reports → institution_registrations have no FK in the schema,
+     *  so we fetch only what Supabase can resolve (ai_alerts + sentinel_reports via report_id). */
+    async getPhoInbox() {
         return await supabase
             .from('ai_alerts')
             .select(`
@@ -14,7 +16,6 @@ export class AlertsRepository {
                     organization_id
                 )
             `)
-            .eq('zone_id', zoneId)
             .neq('status', 'invalidated')
             .order('cbs_score', { ascending: false });
     }
@@ -63,5 +64,38 @@ export class AlertsRepository {
             .from('ai_alerts')
             .select('status, cbs_score, zone_id', { count: 'exact' })
             .gte('created_at', thirtyDaysAgo.toISOString());
+    }
+
+    /** Civilian: return confirmed/probable alerts, ordered by severity.
+     *  Spatial filtering will be added when PostGIS is enabled. */
+    async getLocalAlerts() {
+        return await supabase
+            .from('ai_alerts')
+            .select('*, sentinel_reports(patient_count, symptom_matrix, origin_address)')
+            .in('status', ['probable', 'confirmed'])
+            .order('cbs_score', { ascending: false })
+            .limit(20);
+    }
+
+    /** PHO broadcast: persist advisory to DB so institutions see it in Inbox */
+    async insertAdvisory(advisory: {
+        issued_by: string;
+        message: string;
+        severity: 'ADVISORY' | 'WARNING' | 'CRITICAL';
+        zone_id: string;
+        dismissed: boolean;
+    }) {
+        return await supabase
+            .from('advisories')
+            .insert([advisory]);
+    }
+
+    /** PHO Inbox: advisories from EOC (no facility_id = global / cross-role message) */
+    async getPhoAdvisories() {
+        return await supabase
+            .from('advisories')
+            .select('*')
+            .eq('dismissed', false)
+            .order('created_at', { ascending: false });
     }
 }

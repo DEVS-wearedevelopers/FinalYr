@@ -89,12 +89,12 @@ export class ReportsRepository {
             .order('created_at', { ascending: false });
     }
 
-    /** Institution inbox: all advisories + registration status messages */
-    async getAllAdvisories(organizationId: string) {
+    /** Institution inbox: all active (non-dismissed) PHO advisories */
+    async getAllAdvisories() {
         return await supabase
             .from('advisories')
             .select('*')
-            .eq('zone_id', organizationId)
+            .eq('dismissed', false)
             .order('created_at', { ascending: false });
     }
 }

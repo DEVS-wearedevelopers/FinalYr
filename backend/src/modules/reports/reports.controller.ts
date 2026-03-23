@@ -54,11 +54,10 @@ export function createReportsController(reportsService: ReportsService) {
         }
     });
 
-    // Institution inbox: advisories targeted at this facility
+    // Institution inbox: all active PHO advisories (visible to all institutions)
     router.get('/inbox', requireRole(['institution']), async (c) => {
         try {
-            const user = c.get('user');
-            const { data, error } = await (reportsService as any).repo.getAllAdvisories(user.organizationId);
+            const { data, error } = await (reportsService as any).repo.getAllAdvisories();
             if (error) return c.json({ error: error.message }, 500);
             return c.json({ messages: data ?? [] }, 200);
         } catch (error: any) {
