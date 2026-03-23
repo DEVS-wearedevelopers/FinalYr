@@ -1,0 +1,27 @@
+[
+  {
+    "cacheId": "RPT-1774249248646-JLE5B",
+    "savedAt": "2026-03-23T07:00:48.646Z",
+    "status": "synced",
+    "payload": {
+      "patientCount": 5,
+      "originLocation": {
+        "lat": 0,
+        "lng": 0,
+        "address": "Hostel A"
+      },
+      "symptomMatrix": [
+        "Seizures",
+        "Abdominal Pain"
+      ],
+      "severity": 8
+    },
+    "user": {
+      "id": "8b24106a-19c3-474d-b0c3-1397e7b5440a",
+      "email": "institution@merms.test",
+      "role": "institution",
+      "organizationId": "test-org-001"
+    },
+    "dbReportId": "4337582a-aa29-42b4-8189-14863654dea6"
+  }
+]

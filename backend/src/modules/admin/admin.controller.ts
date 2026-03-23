@@ -93,10 +93,11 @@ export function createAdminController(adminService: AdminService) {
     // ── System Logs (EOC admin only) ─────────────────────────────────────────────────
     router.get('/logs', async (c) => {
         try {
-            const level = c.req.query('level') as any;
-            const limit = parseInt(c.req.query('limit') ?? '100');
+            const level  = c.req.query('level') as any;
+            const module = c.req.query('module');
+            const limit  = parseInt(c.req.query('limit')  ?? '100');
             const offset = parseInt(c.req.query('offset') ?? '0');
-            return c.json(syslog.getLogs({ level, limit, offset }), 200);
+            return c.json(syslog.getLogs({ level, module, limit, offset }), 200);
         } catch (error: any) {
             return handleCatch(c, error);
         }

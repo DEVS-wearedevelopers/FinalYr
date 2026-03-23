@@ -42,5 +42,29 @@ export function createReportsController(reportsService: ReportsService) {
         }
     });
 
+    // Institution: see ai_alerts generated from their reports
+    router.get('/alerts', requireRole(['institution']), async (c) => {
+        try {
+            const user = c.get('user');
+            const { data, error } = await (reportsService as any).repo.getAlertsForOrg(user.organizationId);
+            if (error) return c.json({ error: error.message }, 500);
+            return c.json({ alerts: data ?? [] }, 200);
+        } catch (error: any) {
+            return c.json({ error: 'Internal Server Error', details: error.message }, 500);
+        }
+    });
+
+    // Institution inbox: advisories targeted at this facility
+    router.get('/inbox', requireRole(['institution']), async (c) => {
+        try {
+            const user = c.get('user');
+            const { data, error } = await (reportsService as any).repo.getAllAdvisories(user.organizationId);
+            if (error) return c.json({ error: error.message }, 500);
+            return c.json({ messages: data ?? [] }, 200);
+        } catch (error: any) {
+            return c.json({ error: 'Internal Server Error', details: error.message }, 500);
+        }
+    });
+
     return router;
 }

@@ -79,4 +79,22 @@ export class ReportsRepository {
             .limit(1);
         return data?.[0] || null;
     }
+
+    /** Institution: all ai_alerts generated from their sentinel reports */
+    async getAlertsForOrg(organizationId: string) {
+        return await supabase
+            .from('ai_alerts')
+            .select('*, sentinel_reports(patient_count, symptom_matrix, origin_address, created_at)')
+            .eq('facility_id', organizationId)
+            .order('created_at', { ascending: false });
+    }
+
+    /** Institution inbox: all advisories + registration status messages */
+    async getAllAdvisories(organizationId: string) {
+        return await supabase
+            .from('advisories')
+            .select('*')
+            .eq('zone_id', organizationId)
+            .order('created_at', { ascending: false });
+    }
 }

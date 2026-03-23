@@ -56,9 +56,13 @@ export function createAlertsController(alertsService: AlertsService) {
     });
 
     router.post('/:id/escalate', requireRole(['pho']), async (c) => {
-        const alertId = c.req.param('id');
-        const result = await alertsService.escalateAlert(alertId);
-        return c.json(result, 200);
+        try {
+            const alertId = c.req.param('id');
+            const result = await alertsService.escalateAlert(alertId);
+            return c.json(result, 200);
+        } catch (error: any) {
+            return c.json({ error: 'Internal Server Error', details: error.message }, 500);
+        }
     });
 
     // Civilian Level 0 Features

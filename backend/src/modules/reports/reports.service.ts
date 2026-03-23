@@ -1,144 +1,220 @@
-import { ReportsRepository } from './reports.repository.js';
-import { z } from 'zod';
+/**
+ * reports.service.ts
+ * Thin orchestrator — each step is logged and isolated.
+ * Order of operations for submitReport:
+ *   1. Validate input (reports.validator)
+ *   2. Guard: user must have organizationId
+ *   3. Cache report locally to JSON (reports.cache) ← never lost even if DB fails
+ *   4. Insert sentinel_report into DB (reports.repository)
+ *   5. Mark cache entry as synced (or failed)
+ *   6. Update facility last_report_at (non-fatal if it fails)
+ *   7. Calculate CBS score and insert ai_alert (reports.scorer + reports.repository)
+ */
 
-export const reportSchema = z.object({
-    patientCount: z.number().int().positive(),
-    originLocation: z.object({
-        lat: z.number(),
-        lng: z.number(),
-        address: z.string().optional()
-    }),
-    symptomMatrix: z.array(z.string()).nonempty(),
-    severity: z.number().min(1).max(10),
-    notes: z.string().optional()
-});
+import { ReportsRepository } from './reports.repository.js';
+import { reportSchema }       from './reports.validator.js';
+import { cacheReport, markSynced, markFailed } from './reports.cache.js';
+import {
+    computeSymptomWeight,
+    computeTemporalWeight,
+    computeScaleWeight,
+    buildCbsScore,
+} from './reports.scorer.js';
+import { syslog } from '../admin/system-logger.js';
+
+const MOD = 'reports';
+
+const LOG = (step: string, msg: string, data?: unknown) => {
+    const ts = new Date().toISOString();
+    console.log(`[REPORTS][${step}] ${ts} — ${msg}`, data !== undefined ? JSON.stringify(data) : '');
+    syslog.info(`[${step}] ${msg}`, { module: MOD, data });
+};
+const ERR = (step: string, msg: string, err?: unknown, data?: unknown) => {
+    console.error(`[REPORTS][${step}] ❌ ${msg}`, err);
+    syslog.logModuleError(MOD, step, msg, err, data);
+};
 
 export class ReportsService {
-    constructor(private reportsRepository: ReportsRepository) { }
+    constructor(private repo: ReportsRepository) {}
 
+    // ─────────────────────────────────────────────────────────────────────────
     async submitReport(user: any, body: any) {
+        LOG('SUBMIT', 'Received report submission request', { userId: user.id, role: user.role, organizationId: user.organizationId });
+
+        // ── Step 1: Validate ─────────────────────────────────────────────────
+        LOG('VALIDATE', 'Running Zod validation on request body');
         const result = reportSchema.safeParse(body);
         if (!result.success) {
+            ERR('VALIDATE', 'Validation failed', result.error.format());
             throw new Error(`Validation failed: ${JSON.stringify(result.error.format())}`);
         }
-
         const { patientCount, originLocation, symptomMatrix, severity, notes } = result.data;
+        LOG('VALIDATE', '✅ Input valid', { patientCount, symptoms: symptomMatrix, severity });
 
+        // ── Step 2: Guard ─────────────────────────────────────────────────────
+        LOG('GUARD', 'Checking organizationId on user profile', { organizationId: user.organizationId });
         if (!user.organizationId) {
+            ERR('GUARD', 'No organizationId on user — facility not linked');
             throw new Error('Facility not linked: Your account has no facility/organization assigned. Contact your EOC administrator.');
         }
+        LOG('GUARD', '✅ organizationId present', { organizationId: user.organizationId });
 
-        const { data, error } = await this.reportsRepository.insertSentinelReport({
-            submitted_by: user.id,
+        // ── Step 3: Cache locally ─────────────────────────────────────────────
+        LOG('CACHE', 'Saving report to local JSON cache before DB insert');
+        const cacheId = cacheReport(
+            { patientCount, originLocation, symptomMatrix, severity, notes },
+            { id: user.id, email: user.email, role: user.role, organizationId: user.organizationId }
+        );
+        LOG('CACHE', `✅ Cached with id=${cacheId}`);
+
+        // ── Step 4: Insert sentinel_report into DB ────────────────────────────
+        LOG('DB:REPORT', 'Inserting sentinel_report row into Supabase', {
             organization_id: user.organizationId,
+            submitted_by: user.id,
             patient_count: patientCount,
-            origin_lat: originLocation.lat,
-            origin_lng: originLocation.lng,
             origin_address: originLocation.address,
-            symptom_matrix: symptomMatrix,
-            severity,
-            notes,
-            status: 'Pending AI',
-            professional_id_hash: 'todo-generate-hash'
+            symptoms_count: symptomMatrix.length,
         });
 
-        if (error || !data) {
-            throw new Error(`Database Error: ${error?.message || 'Failed to insert report'}`);
+        const reportPayload = {
+            submitted_by:        user.id,
+            organization_id:     user.organizationId,
+            patient_count:       patientCount,
+            origin_lat:          originLocation.lat,
+            origin_lng:          originLocation.lng,
+            origin_address:      originLocation.address,
+            symptom_matrix:      symptomMatrix,
+            severity,
+            notes,
+            status:              'Pending AI',
+            professional_id_hash: 'todo-generate-hash',
+        };
+
+        const { data: reportRow, error: reportError } = await this.repo.insertSentinelReport(reportPayload);
+
+        if (reportError || !reportRow) {
+            ERR('DB:REPORT', 'DB insert failed', { message: reportError?.message, code: (reportError as any)?.code, details: (reportError as any)?.details });
+            markFailed(cacheId, reportError?.message ?? 'Unknown DB error');
+            throw new Error(`Database Error: ${reportError?.message || 'Failed to insert report'}`);
         }
 
-        // Update the facility's last_report_at timestamp
-        await this.reportsRepository.updateFacilityLastReportAt(user.organizationId);
+        LOG('DB:REPORT', '✅ sentinel_report inserted', { id: reportRow.id, status: reportRow.status });
 
-        await this.calculateAndCreateAlert(user, data.id, patientCount, symptomMatrix);
-        return data;
-    }
+        // ── Step 5: Mark cache synced ─────────────────────────────────────────
+        markSynced(cacheId, reportRow.id);
 
-    private async calculateAndCreateAlert(user: any, reportId: string, patientCount: number, symptomMatrix: string[]) {
+        // ── Step 6: Update facility last_report_at (non-fatal) ───────────────
+        LOG('DB:FACILITY', 'Updating facility last_report_at', { organizationId: user.organizationId });
         try {
-            const symptoms = symptomMatrix.map(s => s.toLowerCase());
-            let W = 0.2;
-
-            const hasFever = symptoms.includes('fever');
-            const hasHemorrhage = symptoms.some(s => s.includes('hemorrhage') || s.includes('bleeding'));
-            const hasNeurological = symptoms.some(s => s.includes('seizure') || s.includes('confusion') || s.includes('paralysis'));
-            const hasRespiratory = symptoms.some(s => s.includes('cough') || s.includes('breath') || s.includes('respiratory'));
-            const hasEnteric = symptoms.includes('vomiting') && symptoms.some(s => s.includes('diarrhea') || s.includes('diarrhoea'));
-
-            if (hasFever && hasHemorrhage) W = 1.0;
-            else if (hasFever && hasNeurological) W = 0.9;
-            else if (hasFever && hasRespiratory) W = 0.7;
-            else if (hasEnteric) W = 0.6;
-            else if (hasFever) W = 0.4;
-            else if (hasRespiratory) W = 0.3;
-
-            let CBS = 0;
-            let severity_index = 0;
-            let bypass_reason: string | null = null;
-            let T = 0.3;
-
-            if (W === 1.0) {
-                CBS = 1.0;
-                severity_index = 10;
-                bypass_reason = "CRITICAL_HEMORRHAGIC";
-            } else {
-                const yesterday = new Date();
-                yesterday.setDate(yesterday.getDate() - 1);
-
-                const { count, error: countError } = await this.reportsRepository.getRecentReportCount(
-                    user.organizationId,
-                    yesterday.toISOString()
-                );
-
-                if (!countError && count !== null) {
-                    if (count >= 10) T = 1.0;
-                    else if (count >= 5) T = 0.8;
-                }
-
-                let S = 0.4;
-                if (patientCount >= 20) S = 1.0;
-                else if (patientCount >= 10) S = 0.8;
-
-                CBS = (W * 0.40) + (T * 0.35) + (S * 0.25);
-                CBS = Math.max(0, Math.min(1, CBS));
-                CBS = Math.round(CBS * 100) / 100;
-                severity_index = Math.ceil(CBS * 10);
-            }
-
-            await this.reportsRepository.insertAiAlert({
-                report_id: reportId,
-                facility_id: user.organizationId,
-                zone_id: user.organizationId,
-                cbs_score: CBS,
-                severity_index,
-                status: 'pending_investigation',
-                symptom_weight: W,
-                bypass_reason,
-                created_at: new Date().toISOString()
-            });
-        } catch (scoringError) {
-            console.error("AI Scoring Error:", scoringError);
+            await this.repo.updateFacilityLastReportAt(user.organizationId);
+            LOG('DB:FACILITY', '✅ last_report_at updated');
+        } catch (facilityUpdateErr) {
+            ERR('DB:FACILITY', 'Non-fatal: failed to update facility last_report_at (facility may not exist in facilities table)', facilityUpdateErr);
+            // Don't throw — this should never block a report submission
         }
+
+        // ── Step 7: Score + insert ai_alert (non-fatal if it errors) ─────────
+        LOG('SCORER', 'Starting CBS scoring', { patientCount, symptoms: symptomMatrix });
+        try {
+            await this.scoreAndCreateAlert(user, reportRow.id, patientCount, symptomMatrix);
+        } catch (scoringErr) {
+            ERR('SCORER', 'Non-fatal: AI scoring/alert creation failed — report was still saved', scoringErr);
+        }
+
+        LOG('SUBMIT', '✅ Report submission complete', { reportId: reportRow.id, cacheId });
+        return reportRow;
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    private async scoreAndCreateAlert(
+        user: any,
+        reportId: string,
+        patientCount: number,
+        symptomMatrix: string[]
+    ) {
+        // Step 7a: Symptom weight
+        const W = computeSymptomWeight(symptomMatrix);
+        LOG('SCORER', `W (symptom weight) = ${W}`);
+
+        // Step 7b: Temporal trend — how many reports from this org in last 24h
+        let recentCount = 0;
+        LOG('SCORER', 'Fetching recent report count from DB (last 24h)');
+        try {
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const { count, error: countErr } = await this.repo.getRecentReportCount(
+                user.organizationId,
+                yesterday.toISOString()
+            );
+            if (countErr) {
+                ERR('SCORER', 'Failed to fetch recent count', countErr);
+            } else {
+                recentCount = count ?? 0;
+                LOG('SCORER', `Recent report count = ${recentCount}`);
+            }
+        } catch (e) {
+            ERR('SCORER', 'Exception fetching recent count', e);
+        }
+
+        const T = computeTemporalWeight(recentCount);
+        const S = computeScaleWeight(patientCount);
+        LOG('SCORER', `T (temporal) = ${T}, S (scale) = ${S}`);
+
+        const { CBS, severity_index, bypass_reason } = buildCbsScore(W, T, S, recentCount);
+        LOG('SCORER', `✅ CBS = ${CBS}, severity_index = ${severity_index}, bypass = ${bypass_reason ?? 'none'}`);
+
+        // Step 7c: Insert ai_alert
+        const alertPayload = {
+            report_id:      reportId,
+            facility_id:    user.organizationId,   // TEXT — no FK constraint
+            zone_id:        user.organizationId,
+            cbs_score:      CBS,
+            severity_index,
+            status:         'pending_investigation',
+            symptom_weight: W,
+            bypass_reason,
+            created_at:     new Date().toISOString(),
+        };
+
+        LOG('DB:ALERT', 'Inserting ai_alert row', alertPayload);
+        const { error: alertError } = await this.repo.insertAiAlert(alertPayload);
+
+        if (alertError) {
+            ERR('DB:ALERT', 'ai_alert insert failed', { message: alertError.message, code: (alertError as any)?.code, details: (alertError as any)?.details, hint: (alertError as any)?.hint });
+            throw new Error(`ai_alert insert error: ${alertError.message}`);
+        }
+
+        LOG('DB:ALERT', '✅ ai_alert inserted');
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     async getFeed(user: any) {
-        const { data, error } = await this.reportsRepository.getReportsFeed(user.organizationId);
+        LOG('FEED', 'Fetching reports feed', { organizationId: user.organizationId });
+        const { data, error } = await this.repo.getReportsFeed(user.organizationId);
         if (error) {
+            ERR('FEED', 'DB error fetching feed', error);
             throw new Error(`Database Error: ${error.message}`);
         }
+        LOG('FEED', `✅ Returned ${data?.length ?? 0} reports`);
         return data;
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
     async getAnalytics(user: any) {
-        const analytics = await this.reportsRepository.getFacilityAnalytics(user.organizationId);
-        const advisory = await this.reportsRepository.getActiveAdvisory(user.organizationId);
-        
+        LOG('ANALYTICS', 'Fetching facility analytics', { organizationId: user.organizationId });
+        const analytics = await this.repo.getFacilityAnalytics(user.organizationId);
+        const advisory  = await this.repo.getActiveAdvisory(user.organizationId);
+        LOG('ANALYTICS', '✅ Analytics fetched', { reportsThisMonth: analytics.reportsThisMonth });
+
         return {
             ...analytics,
-            advisory: advisory ? {
-                active: true,
-                severity: advisory.severity === 'CRITICAL' ? 'red' : (advisory.severity === 'WARNING' ? 'amber' : 'blue'),
-                message: advisory.message
-            } : { active: false }
+            advisory: advisory
+                ? {
+                    active:   true,
+                    severity: advisory.severity === 'CRITICAL' ? 'red' : (advisory.severity === 'WARNING' ? 'amber' : 'blue'),
+                    message:  advisory.message,
+                }
+                : { active: false },
         };
     }
 }

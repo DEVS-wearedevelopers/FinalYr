@@ -56,4 +56,22 @@ export class InstitutionsRepository {
             .select()
             .single();
     }
+
+    async linkUserId(id: string, userId: string) {
+        return await supabase
+            .from('institution_registrations')
+            .update({ user_id: userId })
+            .eq('id', id)
+            .select()
+            .single();
+    }
+
+    async updateEditableFields(id: string, fields: Record<string, any>) {
+        return await supabase
+            .from('institution_registrations')
+            .update(fields)
+            .eq('id', id)
+            .select()
+            .single();
+    }
 }
