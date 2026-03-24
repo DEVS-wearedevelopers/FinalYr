@@ -169,5 +169,30 @@
       "organizationId": "Surulere"
     },
     "dbReportId": "e2611694-4636-4f3b-9778-1e251e033e38"
+  },
+  {
+    "cacheId": "RPT-1774321919287-IUS5S",
+    "savedAt": "2026-03-24T03:11:59.287Z",
+    "status": "synced",
+    "payload": {
+      "patientCount": 1,
+      "originLocation": {
+        "lat": 0,
+        "lng": 0,
+        "address": "Surulere"
+      },
+      "symptomMatrix": [
+        "fever",
+        "cough"
+      ],
+      "severity": 6
+    },
+    "user": {
+      "id": null,
+      "email": null,
+      "role": "civilian",
+      "organizationId": "Surulere"
+    },
+    "dbReportId": "99bd363a-3ab6-451b-a532-bcf69beff1d2"
   }
 ]

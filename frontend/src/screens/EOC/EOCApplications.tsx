@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
-import { DashboardLayout } from '@/components/DashboardLayout';
+import { DashboardLayout, useUserFromToken } from '@/components/DashboardLayout';
 import apiClient from '@/services/apiClient';
 
 const NAV = [
@@ -139,6 +139,7 @@ function ReviewModal({ reg, onClose, onAction }: { reg: Reg; onClose: () => void
 }
 
 export default function EOCApplications() {
+    const tokenUser = useUserFromToken();
     const [regs, setRegs]         = useState<Reg[]>([]);
     const [loading, setLoading]   = useState(true);
     const [filter, setFilter]     = useState<string>('all');
@@ -183,7 +184,7 @@ export default function EOCApplications() {
     });
 
     return (
-        <DashboardLayout navItems={NAV} role="eoc" userName="EOC Admin">
+        <DashboardLayout navItems={NAV} role="eoc" userName={tokenUser?.name || 'EOC Admin'}>
             {toast && <div className="fixed top-5 right-5 z-50 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-xl text-sm font-semibold">{toast}</div>}
             {selected && <ReviewModal reg={selected} onClose={() => setSelected(null)} onAction={handleAction} />}
 

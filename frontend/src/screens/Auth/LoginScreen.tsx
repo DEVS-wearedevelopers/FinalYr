@@ -99,10 +99,14 @@ export default function LoginScreen() {
             const { data } = await apiClient.post('/auth/login', { email: loginEmail, password: loginPassword });
             if (data.session?.access_token) {
                 localStorage.setItem('token', data.session.access_token);
-                // Route based on role returned by the server
-                const rawRole = data.user?.user_metadata?.role ?? (data.user?.role !== 'authenticated' ? data.user?.role : undefined);
-                const appRole: string = (rawRole || 'civilian').toLowerCase();
-                const dest = ROLE_REDIRECT[appRole] ?? '/dashboard/institution';
+                // Use the canonical role returned from the DB profile (most reliable).
+                // Falls back through user_metadata → 'civilian'.
+                const appRole: string = (
+                    data.profile?.role ||
+                    data.user?.user_metadata?.role ||
+                    'civilian'
+                ).toLowerCase();
+                const dest = ROLE_REDIRECT[appRole] ?? '/dashboard/civilian';
                 router.push(dest);
             }
         } catch (err: any) {

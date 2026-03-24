@@ -37,5 +37,23 @@ export function createAuthController(authService: AuthService) {
         }
     });
 
+    // POST /auth/forgot-password — sends a Supabase password reset email.
+    // Always returns 200 (prevents email enumeration).
+    router.post('/forgot-password', async (c) => {
+        try {
+            const { email } = await c.req.json();
+            if (!email || typeof email !== 'string') {
+                return c.json({ error: 'email is required' }, 400);
+            }
+            const redirectTo = process.env.FRONTEND_URL
+                ? `${process.env.FRONTEND_URL}/auth/reset-password`
+                : 'http://localhost:3000/auth/reset-password';
+            await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
+        } catch (_) {
+            // swallow — always return 200 so emails can't be enumerated
+        }
+        return c.json({ message: 'If that email is registered, a reset link has been sent.' }, 200);
+    });
+
     return router;
 }

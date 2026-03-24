@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { DashboardLayout } from '@/components/DashboardLayout';
+import { DashboardLayout, useUserFromToken } from '@/components/DashboardLayout';
 import apiClient from '@/services/apiClient';
 
 const NAV = [
@@ -38,6 +38,7 @@ function FieldRow({ label, value, editable, editing, onChange }: { label: string
 }
 
 export default function InstitutionSettings() {
+    const tokenUser = useUserFromToken();
     const [profile, setProfile] = useState<Reg | null>(null);
     const [edits, setEdits]     = useState<Reg>({});
     const [editing, setEditing] = useState(false);
@@ -75,7 +76,7 @@ export default function InstitutionSettings() {
     };
 
     return (
-        <DashboardLayout navItems={NAV} role="institution" userName="Institution">
+        <DashboardLayout navItems={NAV} role="institution" userName={tokenUser?.name || 'Institution'}>
             {toast && (
                 <div className={`fixed top-5 right-5 z-50 px-5 py-3 rounded-2xl shadow-xl text-sm font-semibold text-white transition-all ${toast.includes('Failed') ? 'bg-red-600' : 'bg-green-600'}`}>
                     {toast}

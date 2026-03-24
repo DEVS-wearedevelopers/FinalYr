@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { alertsService } from '@/services/alertsService';
+import { reportsService } from '@/services/reportsService';
 import { supabase } from '@/services/supabaseClient';
 
 const CivilianMap = dynamic(() => import('./CivilianMap'), { ssr: false });
@@ -343,7 +344,7 @@ export default function CivilianDashboard() {
                 </div>
 
                 {/* Live map */}
-                <section>
+                <section style={{ isolation: 'isolate' }}>
                     <div className="flex items-center justify-between mb-3">
                         <h2 className="text-base font-bold text-slate-900">Active Report Map</h2>
                         <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${newAlertFlash ? 'bg-red-50 border-red-200 text-red-600' : 'bg-green-50 border-green-200 text-green-700'}`}>

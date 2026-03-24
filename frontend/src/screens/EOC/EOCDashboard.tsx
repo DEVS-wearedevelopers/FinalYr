@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
-import { DashboardLayout } from '@/components/DashboardLayout';
+import { DashboardLayout, useUserFromToken } from '@/components/DashboardLayout';
 import apiClient from '@/services/apiClient';
 import { supabase } from '@/services/supabaseClient';
 
@@ -152,6 +152,7 @@ const NAV = [
 type FacilityRow = { id: string; name: string; zone: string; status: string; reliability: number };
 
 export default function EOCDashboard() {
+    const tokenUser = useUserFromToken();
     const [selectedZone, setSelectedZone]       = useState<ZoneData | null>(null);
     const [facilities, setFacilities]           = useState<FacilityRow[]>([]);
     const [blacklistTarget, setBlacklistTarget] = useState<FacilityRow | null>(null);
@@ -249,7 +250,7 @@ export default function EOCDashboard() {
     const pendingApps  = facilities.filter((f: FacilityRow) => f.status === 'Pending').length;
 
     return (
-        <DashboardLayout navItems={NAV} role="eoc" userName="EOC Admin">
+        <DashboardLayout navItems={NAV} role="eoc" userName={tokenUser?.name || 'EOC Admin'}>
             {toast && <div className="fixed top-5 right-5 z-50 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-xl text-sm font-semibold animate-fade-in">{toast}</div>}
             {blacklistTarget && <BlacklistModal facility={blacklistTarget.name} onClose={() => setBlacklistTarget(null)} onConfirm={reason => { setFacilities(p => p.map(f => f.id === blacklistTarget.id ? { ...f, status: 'Blacklisted' } : f)); setBlacklistTarget(null); showToast(`${blacklistTarget.name} blacklisted`); }} />}
             {showProtocol && <NationalProtocolModal onClose={() => { setShowProtocol(false); showToast('Protocol execution logged for dual-authorization review'); }} />}

@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
-import { DashboardLayout } from '@/components/DashboardLayout';
+import { DashboardLayout, useUserFromToken } from '@/components/DashboardLayout';
 import apiClient from '@/services/apiClient';
 
 const NAV = [
@@ -46,6 +46,7 @@ function statusGroup(s: string): Filter {
 }
 
 export default function InstitutionReports() {
+    const tokenUser = useUserFromToken();
     const [reports, setReports] = useState<Report[]>([]);
     const [loading, setLoading] = useState(true);
     const [expanded, setExpanded] = useState<string | null>(null);
@@ -76,7 +77,7 @@ export default function InstitutionReports() {
     };
 
     return (
-        <DashboardLayout navItems={NAV} role="institution" userName="Institution">
+        <DashboardLayout navItems={NAV} role="institution" userName={tokenUser?.name || 'Institution'}>
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div>

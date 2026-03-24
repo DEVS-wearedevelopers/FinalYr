@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useState, useCallback } from 'react';
-import { DashboardLayout } from '@/components/DashboardLayout';
+import { DashboardLayout, useUserFromToken } from '@/components/DashboardLayout';
 import apiClient from '@/services/apiClient';
 
 const NAV = [
@@ -35,6 +35,7 @@ function normalise(raw: RawAlert): Alert {
 }
 
 export default function InstitutionAlerts() {
+    const tokenUser = useUserFromToken();
     const [alerts, setAlerts] = useState<Alert[]>([]);
     const [loading, setLoading] = useState(true);
     const [selected, setSelected] = useState<Alert | null>(null);
@@ -53,7 +54,7 @@ export default function InstitutionAlerts() {
     const resolved = alerts.filter(a => a.status === 'invalidated');
 
     return (
-        <DashboardLayout navItems={NAV} role="institution" userName="Institution">
+        <DashboardLayout navItems={NAV} role="institution" userName={tokenUser?.name || 'Institution'}>
             <div className="flex items-center justify-between mb-6">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 tracking-tight">PHO Alerts</h1>

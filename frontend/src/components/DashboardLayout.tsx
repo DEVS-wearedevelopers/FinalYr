@@ -4,6 +4,26 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 
+// ── Decode JWT payload (no verify — just read claims for display) ──────────────
+export function useUserFromToken() {
+    const [user, setUser] = useState<{ name: string; email: string; role: string } | null>(null);
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            const meta = payload.user_metadata ?? {};
+            const firstName = meta.firstName || meta.first_name || '';
+            const lastName  = meta.lastName  || meta.last_name  || '';
+            const name = [firstName, lastName].filter(Boolean).join(' ') || payload.email?.split('@')[0] || 'User';
+            setUser({ name, email: payload.email ?? '', role: meta.role ?? 'civilian' });
+        } catch {
+            setUser(null);
+        }
+    }, []);
+    return user;
+}
+
 interface NavItem {
     label: string;
     href: string;
@@ -22,9 +42,10 @@ function useDarkMode() {
     const [dark, setDark] = useState(false);
 
     useEffect(() => {
+        // Only activate dark mode if the user has explicitly saved it.
+        // Do NOT follow prefers-color-scheme — default is always light.
         const saved = localStorage.getItem('merms-theme');
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        const initial = saved ? saved === 'dark' : prefersDark;
+        const initial = saved === 'dark';
         setDark(initial);
         document.documentElement.classList.toggle('dark', initial);
     }, []);

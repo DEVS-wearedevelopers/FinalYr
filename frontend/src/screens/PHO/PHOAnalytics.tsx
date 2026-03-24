@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { DashboardLayout } from '@/components/DashboardLayout';
+import { DashboardLayout, useUserFromToken } from '@/components/DashboardLayout';
 import { alertsService } from '@/services/alertsService';
 
 const NAV = [
@@ -41,6 +41,7 @@ function BarRow({ label, value, max, color }: { label: string; value: number; ma
 }
 
 export default function PHOAnalytics() {
+    const tokenUser = useUserFromToken();
     const [trends, setTrends]   = useState<any>(null);
     const [alerts, setAlerts]   = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -66,7 +67,7 @@ export default function PHOAnalytics() {
     ).sort(([, a], [, b]) => (b as number) - (a as number)).slice(0, 6);
 
     return (
-        <DashboardLayout navItems={NAV} role="pho" userName="PHO">
+        <DashboardLayout navItems={NAV} role="pho" userName={tokenUser?.name || 'PHO'}>
             <div className="mb-6">
                 <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Zone Analytics</h1>
                 <p className="text-slate-500 text-sm mt-0.5">Surveillance metrics and outbreak intelligence for your zone</p>

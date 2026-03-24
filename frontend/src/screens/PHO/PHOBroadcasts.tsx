@@ -1,6 +1,6 @@
 'use client';
 import React, { useState } from 'react';
-import { DashboardLayout } from '@/components/DashboardLayout';
+import { DashboardLayout, useUserFromToken } from '@/components/DashboardLayout';
 import { alertsService } from '@/services/alertsService';
 
 const NAV = [
@@ -51,6 +51,7 @@ const TYPE_BADGE: Record<string, string> = {
 };
 
 export default function PHOBroadcasts() {
+    const tokenUser = useUserFromToken();
     const [selectedId, setSelectedId]   = useState(TEMPLATES[0].id);
     const [customBody, setCustomBody]   = useState('');
     const [useCustom, setUseCustom]     = useState(false);
@@ -80,7 +81,7 @@ export default function PHOBroadcasts() {
     };
 
     return (
-        <DashboardLayout navItems={NAV} role="pho" userName="PHO">
+        <DashboardLayout navItems={NAV} role="pho" userName={tokenUser?.name || 'PHO'}>
             {toast && <div className="fixed top-5 right-5 z-50 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-xl text-sm font-semibold">{toast}</div>}
 
             <div className="mb-6">

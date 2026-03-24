@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useState, useCallback } from 'react';
-import { DashboardLayout } from '@/components/DashboardLayout';
+import { DashboardLayout, useUserFromToken } from '@/components/DashboardLayout';
 import apiClient from '@/services/apiClient';
 
 const NAV = [
@@ -39,6 +39,7 @@ const SEVERITY_STYLE = {
 };
 
 export default function InstitutionInbox() {
+    const tokenUser = useUserFromToken();
     const [advisories, setAdvisories] = useState<Advisory[]>([]);
     const [loading, setLoading] = useState(true);
     const [selected, setSelected] = useState<Advisory | SystemMsg | null>(SYSTEM_MESSAGES[0]);
@@ -57,7 +58,7 @@ export default function InstitutionInbox() {
     const isAdvisory = (item: any): item is Advisory => 'severity' in item;
 
     return (
-        <DashboardLayout navItems={NAV} role="institution" userName="Institution">
+        <DashboardLayout navItems={NAV} role="institution" userName={tokenUser?.name || 'Institution'}>
             <div className="flex items-center justify-between mb-6">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Institution Inbox</h1>

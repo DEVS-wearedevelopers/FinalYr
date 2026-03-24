@@ -1,13 +1,12 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { DashboardLayout } from '@/components/DashboardLayout';
+import { DashboardLayout, useUserFromToken } from '@/components/DashboardLayout';
 import dynamic from 'next/dynamic';
 import apiClient from '@/services/apiClient';
 
 const SentinelModal = dynamic(() => import('./components/SentinelModal'), { ssr: false });
 
 // ── Utils ──────────────────────────────────────────────────────────────────────
-const NOW = Date.now();
 function rel(iso: string) {
     const d = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
     if (d < 60) return `${d}m ago`;
@@ -36,6 +35,7 @@ const NAV = [
 ];
 
 export default function InstitutionDashboard() {
+    const tokenUser = useUserFromToken();
     const [showModal, setShowModal] = useState(false);
     const [expandedRow, setExpandedRow] = useState<string | null>(null);
     const [toast, setToast] = useState('');
@@ -69,7 +69,7 @@ export default function InstitutionDashboard() {
     const showToast = (m: string) => { setToast(m); setTimeout(() => setToast(''), 3000); };
 
     return (
-        <DashboardLayout navItems={NAV} role="institution" userName="Dr. Adaeze Obi">
+        <DashboardLayout navItems={NAV} role="institution" userName={tokenUser?.name || 'Institution'}>
             {toast && <div className="fixed top-4 right-4 z-50 bg-green-600 text-white px-5 py-3 rounded-2xl shadow-xl text-sm font-semibold">{toast}</div>}
             {showModal && <SentinelModal onClose={() => setShowModal(false)} onSuccess={(id) => { showToast(`Report ${id} submitted`); loadData(); }} />}
 

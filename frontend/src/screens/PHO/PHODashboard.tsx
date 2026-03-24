@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
-import { DashboardLayout } from '@/components/DashboardLayout';
+import { DashboardLayout, useUserFromToken } from '@/components/DashboardLayout';
 import dynamic from 'next/dynamic';
 import { alertsService, AiAlert } from '@/services/alertsService';
 
@@ -109,6 +109,7 @@ const NAV = [
 
 // ── Main dashboard ────────────────────────────────────────────────────────────
 export default function PHODashboard() {
+    const tokenUser = useUserFromToken();
     // ── Data state ────────────────────────────────────────────────────────────
     const [alerts, setAlerts]           = useState<AiAlert[]>([]);
     const [loading, setLoading]         = useState(true);
@@ -194,7 +195,7 @@ export default function PHODashboard() {
     const unclaimed = alerts.filter(a => !claimedIds.has(a.id)).length;
 
     return (
-        <DashboardLayout navItems={NAV} role="pho" userName="PHO">
+        <DashboardLayout navItems={NAV} role="pho" userName={tokenUser?.name || 'PHO'}>
             {/* Toast */}
             {toast && <div className="fixed top-5 right-5 z-50 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-xl text-sm font-semibold">{toast}</div>}
             {showBroadcast && <BroadcastModal onClose={() => setShowBroadcast(false)} onSend={() => { setShowBroadcast(false); showToast('Broadcast sent to facilities in your zone'); }} />}
