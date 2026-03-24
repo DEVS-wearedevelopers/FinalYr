@@ -12,10 +12,14 @@ import { ErrorBanner } from '@/ui/ErrorBanner';
 
 // ─── Dev Test Accounts ────────────────────────────────────────────────────────
 const TEST_ACCOUNTS = [
-    { role: 'Institution', email: 'institution@merms.test', password: 'MermsInst@2026', color: 'text-blue-600 bg-blue-50 border-blue-200' },
-    { role: 'PHO', email: 'pho@merms.test', password: 'MermsPHO@2026', color: 'text-purple-600 bg-purple-50 border-purple-200' },
-    { role: 'EOC Admin', email: 'eoc@merms.test', password: 'MermsEOC@2026', color: 'text-red-600 bg-red-50 border-red-200' },
-    { role: 'Civilian', email: 'civilian@merms.test', password: 'MermsCiv@2026', color: 'text-green-600 bg-green-50 border-green-200' },
+    // ── Demo-day accounts (simple passwords) ──
+    { role: 'EOC Admin',   email: 'admin@merms.test',     password: 'Admin1234',    color: 'text-red-600 bg-red-50 border-red-200' },
+    { role: 'Hospital 1',  email: 'hospital1@merms.test', password: 'Hospital1234', color: 'text-blue-600 bg-blue-50 border-blue-200' },
+    { role: 'Hospital 2',  email: 'hospital2@merms.test', password: 'Hospital1234', color: 'text-indigo-600 bg-indigo-50 border-indigo-200' },
+    { role: 'Civilian',    email: 'civilian@merms.test',  password: 'Civilian1234', color: 'text-green-600 bg-green-50 border-green-200' },
+    // ── Legacy dev accounts ──
+    { role: 'Institution (legacy)', email: 'institution@merms.test', password: 'MermsInst@2026', color: 'text-slate-500 bg-slate-50 border-slate-200' },
+    { role: 'EOC (legacy)',         email: 'eoc@merms.test',         password: 'MermsEOC@2026',  color: 'text-slate-500 bg-slate-50 border-slate-200' },
 ];
 
 // ─── Dev Login Shortcut ───────────────────────────────────────────────────────
