@@ -10,7 +10,7 @@ export const testHarnessRouter = new Hono();
 testHarnessRouter.use('*', async (c, next) => {
     // Extract a mock role from headers, default to eoc
     const rawRole = c.req.header('X-Mock-Role') || 'eoc';
-    const role = rawRole as 'eoc' | 'pho' | 'institution' | 'civilian';
+    const role = rawRole as 'eoc' | 'institution' | 'civilian';
     const orgId = c.req.header('X-Mock-OrgId') || 'test-org-123';
 
     // Inject mock user

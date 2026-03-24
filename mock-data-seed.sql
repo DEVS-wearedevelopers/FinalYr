@@ -20,18 +20,46 @@ DO $$ BEGIN
 EXCEPTION WHEN undefined_table THEN NULL;
 END $$;
 
--- ── 1. Seed Auth Users (idempotent — skips rows whose email already exists) ───
+-- =============================================================
+-- DEMO ACCOUNTS (presentation-ready, simple passwords)
+-- =============================================================
+-- admin@merms.test    / Admin1234    → eoc
+-- hospital1@merms.test / Hospital1234 → institution (facility 001)
+-- hospital2@merms.test / Hospital1234 → institution (facility 002)
+-- civilian@merms.test  / Civilian1234 → civilian
+-- =============================================================
+
+-- ── 1. Auth Users ────────────────────────────────────────────
 INSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, raw_user_meta_data, created_at, updated_at, role, aud)
-SELECT gen_random_uuid(), 'institution@merms.test', crypt('MermsInst@2026', gen_salt('bf')), NOW(),
-       '{"firstName":"Test","lastName":"Institution","role":"institution"}'::jsonb,
+SELECT gen_random_uuid(), 'admin@merms.test', crypt('Admin1234', gen_salt('bf')), NOW(),
+       '{"firstName":"EOC","lastName":"Admin","role":"eoc"}'::jsonb,
        NOW(), NOW(), 'authenticated', 'authenticated'
-WHERE NOT EXISTS (SELECT 1 FROM auth.users WHERE email = 'institution@merms.test');
+WHERE NOT EXISTS (SELECT 1 FROM auth.users WHERE email = 'admin@merms.test');
 
 INSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, raw_user_meta_data, created_at, updated_at, role, aud)
-SELECT gen_random_uuid(), 'pho@merms.test', crypt('MermsPHO@2026', gen_salt('bf')), NOW(),
-       '{"firstName":"Test","lastName":"PHO","role":"pho"}'::jsonb,
+SELECT gen_random_uuid(), 'hospital1@merms.test', crypt('Hospital1234', gen_salt('bf')), NOW(),
+       '{"firstName":"LUTH","lastName":"Reporting","role":"institution","organizationId":"aaaaaaaa-0000-0000-0000-000000000001"}'::jsonb,
        NOW(), NOW(), 'authenticated', 'authenticated'
-WHERE NOT EXISTS (SELECT 1 FROM auth.users WHERE email = 'pho@merms.test');
+WHERE NOT EXISTS (SELECT 1 FROM auth.users WHERE email = 'hospital1@merms.test');
+
+INSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, raw_user_meta_data, created_at, updated_at, role, aud)
+SELECT gen_random_uuid(), 'hospital2@merms.test', crypt('Hospital1234', gen_salt('bf')), NOW(),
+       '{"firstName":"Apapa","lastName":"General","role":"institution","organizationId":"aaaaaaaa-0000-0000-0000-000000000002"}'::jsonb,
+       NOW(), NOW(), 'authenticated', 'authenticated'
+WHERE NOT EXISTS (SELECT 1 FROM auth.users WHERE email = 'hospital2@merms.test');
+
+INSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, raw_user_meta_data, created_at, updated_at, role, aud)
+SELECT gen_random_uuid(), 'civilian@merms.test', crypt('Civilian1234', gen_salt('bf')), NOW(),
+       '{"firstName":"Demo","lastName":"Civilian","role":"civilian"}'::jsonb,
+       NOW(), NOW(), 'authenticated', 'authenticated'
+WHERE NOT EXISTS (SELECT 1 FROM auth.users WHERE email = 'civilian@merms.test');
+
+-- Legacy aliases (kept for backwards compat with any stored sessions)
+INSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, raw_user_meta_data, created_at, updated_at, role, aud)
+SELECT gen_random_uuid(), 'institution@merms.test', crypt('MermsInst@2026', gen_salt('bf')), NOW(),
+       '{"firstName":"Test","lastName":"Institution","role":"institution","organizationId":"aaaaaaaa-0000-0000-0000-000000000001"}'::jsonb,
+       NOW(), NOW(), 'authenticated', 'authenticated'
+WHERE NOT EXISTS (SELECT 1 FROM auth.users WHERE email = 'institution@merms.test');
 
 INSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, raw_user_meta_data, created_at, updated_at, role, aud)
 SELECT gen_random_uuid(), 'eoc@merms.test', crypt('MermsEOC@2026', gen_salt('bf')), NOW(),
@@ -39,30 +67,43 @@ SELECT gen_random_uuid(), 'eoc@merms.test', crypt('MermsEOC@2026', gen_salt('bf'
        NOW(), NOW(), 'authenticated', 'authenticated'
 WHERE NOT EXISTS (SELECT 1 FROM auth.users WHERE email = 'eoc@merms.test');
 
--- ── 2. Profiles (look up real UUID from auth.users by email — works regardless
---    of whether users were created here or via Supabase Dashboard) ────────────
-INSERT INTO public.profiles (id, email, role, first_name, last_name, organization_id, can_broadcast)
+-- ── 2. Profiles ──────────────────────────────────────────────
+INSERT INTO public.profiles (id, email, role, first_name, last_name, organization_id)
+SELECT id, 'admin@merms.test', 'eoc', 'EOC', 'Admin', NULL
+FROM auth.users WHERE email = 'admin@merms.test'
+ON CONFLICT (id) DO UPDATE SET role = EXCLUDED.role;
+
+INSERT INTO public.profiles (id, email, role, first_name, last_name, organization_id)
+SELECT id, 'hospital1@merms.test', 'institution', 'LUTH', 'Reporting',
+       'aaaaaaaa-0000-0000-0000-000000000001'
+FROM auth.users WHERE email = 'hospital1@merms.test'
+ON CONFLICT (id) DO UPDATE SET
+    organization_id = EXCLUDED.organization_id, role = EXCLUDED.role;
+
+INSERT INTO public.profiles (id, email, role, first_name, last_name, organization_id)
+SELECT id, 'hospital2@merms.test', 'institution', 'Apapa', 'General',
+       'aaaaaaaa-0000-0000-0000-000000000002'
+FROM auth.users WHERE email = 'hospital2@merms.test'
+ON CONFLICT (id) DO UPDATE SET
+    organization_id = EXCLUDED.organization_id, role = EXCLUDED.role;
+
+INSERT INTO public.profiles (id, email, role, first_name, last_name, organization_id)
+SELECT id, 'civilian@merms.test', 'civilian', 'Demo', 'Civilian', NULL
+FROM auth.users WHERE email = 'civilian@merms.test'
+ON CONFLICT (id) DO UPDATE SET role = EXCLUDED.role;
+
+-- Legacy profile aliases
+INSERT INTO public.profiles (id, email, role, first_name, last_name, organization_id)
 SELECT id, 'institution@merms.test', 'institution', 'Test', 'Institution',
-       'aaaaaaaa-0000-0000-0000-000000000001', false
+       'aaaaaaaa-0000-0000-0000-000000000001'
 FROM auth.users WHERE email = 'institution@merms.test'
 ON CONFLICT (id) DO UPDATE SET
-    organization_id = EXCLUDED.organization_id,
-    can_broadcast   = EXCLUDED.can_broadcast,
-    role            = EXCLUDED.role;
+    organization_id = EXCLUDED.organization_id, role = EXCLUDED.role;
 
-INSERT INTO public.profiles (id, email, role, first_name, last_name, organization_id, can_broadcast)
-SELECT id, 'pho@merms.test', 'pho', 'Test', 'PHO', NULL, true
-FROM auth.users WHERE email = 'pho@merms.test'
-ON CONFLICT (id) DO UPDATE SET
-    can_broadcast = EXCLUDED.can_broadcast,
-    role          = EXCLUDED.role;
-
-INSERT INTO public.profiles (id, email, role, first_name, last_name, organization_id, can_broadcast)
-SELECT id, 'eoc@merms.test', 'eoc', 'Test', 'EOC', NULL, true
+INSERT INTO public.profiles (id, email, role, first_name, last_name)
+SELECT id, 'eoc@merms.test', 'eoc', 'Test', 'EOC'
 FROM auth.users WHERE email = 'eoc@merms.test'
-ON CONFLICT (id) DO UPDATE SET
-    can_broadcast = EXCLUDED.can_broadcast,
-    role          = EXCLUDED.role;
+ON CONFLICT (id) DO UPDATE SET role = EXCLUDED.role;
 
 -- ── 3. Institution Registrations ─────────────────────────────────────────────
 INSERT INTO institution_registrations (
@@ -270,7 +311,7 @@ UNION ALL SELECT 'sentinel_reports',  COUNT(*) FROM sentinel_reports
 UNION ALL SELECT 'ai_alerts',         COUNT(*) FROM ai_alerts
 UNION ALL SELECT 'advisories',        COUNT(*) FROM advisories
 UNION ALL SELECT 'profiles (test)',   COUNT(*) FROM profiles
-           WHERE email IN ('institution@merms.test','pho@merms.test','eoc@merms.test');
+           WHERE email IN ('institution@merms.test','eoc@merms.test');
 
 -- Quick check: sentinel_reports.submitted_by should NOT be null
 SELECT id, submitted_by, organization_id, severity, status

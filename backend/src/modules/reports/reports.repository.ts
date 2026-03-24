@@ -33,6 +33,11 @@ export class ReportsRepository {
     }
 
     async getFacilityAnalytics(facilityId: string) {
+        // Guard: don't send undefined/null as a UUID to Supabase
+        if (!facilityId) {
+            return { dataQualityScore: 100, reportsThisMonth: 0, reportsLastMonth: 0, eocFlags: [] };
+        }
+
         const { data: facility } = await supabase
             .from('facilities')
             .select('data_quality_score')
@@ -70,6 +75,9 @@ export class ReportsRepository {
     }
 
     async getActiveAdvisory(facilityId: string) {
+        // Guard: don't send undefined/null as a UUID to Supabase
+        if (!facilityId) return null;
+
         const { data } = await supabase
             .from('advisories')
             .select('*')

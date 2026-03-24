@@ -47,5 +47,127 @@
       "organizationId": "test-org-001"
     },
     "dbReportId": "3e77b6e6-cc1c-444d-af56-5281d17f22d0"
+  },
+  {
+    "cacheId": "RPT-1774309962755-M82CG",
+    "savedAt": "2026-03-23T23:52:42.755Z",
+    "status": "failed",
+    "payload": {
+      "patientCount": 3,
+      "originLocation": {
+        "lat": 6.45,
+        "lng": 3.47,
+        "address": "Lagos Island"
+      },
+      "symptomMatrix": [
+        "fever",
+        "cough"
+      ],
+      "severity": 4
+    },
+    "user": {
+      "id": null,
+      "email": null,
+      "role": "civilian"
+    },
+    "error": "Could not find the 'source' column of 'sentinel_reports' in the schema cache"
+  },
+  {
+    "cacheId": "RPT-1774309978380-4D5TM",
+    "savedAt": "2026-03-23T23:52:58.380Z",
+    "status": "failed",
+    "payload": {
+      "patientCount": 3,
+      "originLocation": {
+        "lat": 6.45,
+        "lng": 3.47,
+        "address": "Lagos Island"
+      },
+      "symptomMatrix": [
+        "fever",
+        "cough"
+      ],
+      "severity": 4
+    },
+    "user": {
+      "id": null,
+      "email": null,
+      "role": "civilian"
+    },
+    "error": "Could not find the 'source' column of 'sentinel_reports' in the schema cache"
+  },
+  {
+    "cacheId": "RPT-1774309986697-K2NUQ",
+    "savedAt": "2026-03-23T23:53:06.697Z",
+    "status": "failed",
+    "payload": {
+      "patientCount": 3,
+      "originLocation": {
+        "lat": 6.45,
+        "lng": 3.47,
+        "address": "Lagos Island"
+      },
+      "symptomMatrix": [
+        "fever",
+        "cough"
+      ],
+      "severity": 4
+    },
+    "user": {
+      "id": null,
+      "email": null,
+      "role": "civilian"
+    },
+    "error": "Could not find the 'source' column of 'sentinel_reports' in the schema cache"
+  },
+  {
+    "cacheId": "RPT-1774311781653-HECUE",
+    "savedAt": "2026-03-24T00:23:01.653Z",
+    "status": "failed",
+    "payload": {
+      "patientCount": 1,
+      "originLocation": {
+        "lat": 0,
+        "lng": 0,
+        "address": "Surulere"
+      },
+      "symptomMatrix": [
+        "fever",
+        "vomiting"
+      ],
+      "severity": 5
+    },
+    "user": {
+      "id": null,
+      "email": null,
+      "role": "civilian",
+      "organizationId": "Surulere"
+    },
+    "error": "TypeError: fetch failed"
+  },
+  {
+    "cacheId": "RPT-1774311800390-W4TWS",
+    "savedAt": "2026-03-24T00:23:20.390Z",
+    "status": "synced",
+    "payload": {
+      "patientCount": 1,
+      "originLocation": {
+        "lat": 0,
+        "lng": 0,
+        "address": "Surulere"
+      },
+      "symptomMatrix": [
+        "fever",
+        "vomiting"
+      ],
+      "severity": 5
+    },
+    "user": {
+      "id": null,
+      "email": null,
+      "role": "civilian",
+      "organizationId": "Surulere"
+    },
+    "dbReportId": "e2611694-4636-4f3b-9778-1e251e033e38"
   }
 ]

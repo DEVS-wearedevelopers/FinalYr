@@ -48,17 +48,22 @@ export class ReportsService {
             ERR('VALIDATE', 'Validation failed', result.error.format());
             throw new Error(`Validation failed: ${JSON.stringify(result.error.format())}`);
         }
-        const { patientCount, originLocation, symptomMatrix, severity, notes } = result.data;
-        LOG('VALIDATE', '✅ Input valid', { patientCount, symptoms: symptomMatrix, severity });
+        const { patientCount, originLocation, symptomMatrix, severity, notes, source } = result.data;
+        LOG('VALIDATE', '\u2705 Input valid', { patientCount, symptoms: symptomMatrix, severity, source });
 
-        // ── Step 2: Guard ─────────────────────────────────────────────────────
-        LOG('GUARD', 'Checking organizationId on user profile', { organizationId: user.organizationId });
-        if (!user.organizationId) {
-            ERR('GUARD', 'No organizationId on user — facility not linked');
-            throw new Error('Facility not linked: Your account has no facility/organization assigned. Contact your EOC administrator.');
+        // \u2500\u2500 Step 2: Guard \u2500
+        // Community reports are anonymous \u2014 no organizationId required.
+        // Institution reports must always have a linked facility.
+        if (source === 'institution') {
+            LOG('GUARD', 'Checking organizationId (institution submission)', { organizationId: user.organizationId });
+            if (!user.organizationId) {
+                ERR('GUARD', 'No organizationId on user \u2014 facility not linked');
+                throw new Error('Facility not linked: Your account has no facility/organization assigned. Contact your EOC administrator.');
+            }
+            LOG('GUARD', '\u2705 organizationId present', { organizationId: user.organizationId });
+        } else {
+            LOG('GUARD', 'Community report \u2014 skipping organizationId check');
         }
-        LOG('GUARD', '✅ organizationId present', { organizationId: user.organizationId });
-
         // ── Step 3: Cache locally ─────────────────────────────────────────────
         LOG('CACHE', 'Saving report to local JSON cache before DB insert');
         const cacheId = cacheReport(
@@ -77,17 +82,17 @@ export class ReportsService {
         });
 
         const reportPayload = {
-            submitted_by:        user.id,
-            organization_id:     user.organizationId,
-            patient_count:       patientCount,
-            origin_lat:          originLocation.lat,
-            origin_lng:          originLocation.lng,
-            origin_address:      originLocation.address,
-            symptom_matrix:      symptomMatrix,
+            submitted_by:         user.id || null,
+            organization_id:      user.organizationId || null,
+            source,
+            patient_count:        patientCount,
+            origin_lat:           originLocation.lat,
+            origin_lng:           originLocation.lng,
+            origin_address:       originLocation.address,
+            symptom_matrix:       symptomMatrix,
             severity,
             notes,
-            status:              'Pending AI',
-            professional_id_hash: 'todo-generate-hash',
+            status:               'Pending AI',
         };
 
         const { data: reportRow, error: reportError } = await this.repo.insertSentinelReport(reportPayload);
@@ -113,17 +118,19 @@ export class ReportsService {
             // Don't throw — this should never block a report submission
         }
 
-        // ── Step 7: Score + insert ai_alert (non-fatal if it errors) ─────────
+        // ── Step 7: Score + insert ai_alert, capture the alert row ───────────
         LOG('SCORER', 'Starting CBS scoring', { patientCount, symptoms: symptomMatrix });
+        let alert: any = null;
         try {
-            await this.scoreAndCreateAlert(user, reportRow.id, patientCount, symptomMatrix);
+            alert = await this.scoreAndCreateAlert(user, reportRow.id, patientCount, symptomMatrix);
         } catch (scoringErr) {
             ERR('SCORER', 'Non-fatal: AI scoring/alert creation failed — report was still saved', scoringErr);
         }
 
         LOG('SUBMIT', '✅ Report submission complete', { reportId: reportRow.id, cacheId });
-        return reportRow;
+        return { report: reportRow, alert };
     }
+
 
     // ─────────────────────────────────────────────────────────────────────────
     private async scoreAndCreateAlert(
@@ -177,19 +184,24 @@ export class ReportsService {
         };
 
         LOG('DB:ALERT', 'Inserting ai_alert row', alertPayload);
-        const { error: alertError } = await this.repo.insertAiAlert(alertPayload);
+        const { data: alertRow, error: alertError } = await this.repo.insertAiAlert(alertPayload);
 
         if (alertError) {
             ERR('DB:ALERT', 'ai_alert insert failed', { message: alertError.message, code: (alertError as any)?.code, details: (alertError as any)?.details, hint: (alertError as any)?.hint });
             throw new Error(`ai_alert insert error: ${alertError.message}`);
         }
 
-        LOG('DB:ALERT', '✅ ai_alert inserted');
+        LOG('DB:ALERT', '✅ ai_alert inserted', { id: (alertRow as any)?.id });
+        return alertRow;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
     async getFeed(user: any) {
         LOG('FEED', 'Fetching reports feed', { organizationId: user.organizationId });
+        if (!user.organizationId) {
+            ERR('FEED', 'No organizationId — returning empty feed');
+            return [];
+        }
         const { data, error } = await this.repo.getReportsFeed(user.organizationId);
         if (error) {
             ERR('FEED', 'DB error fetching feed', error);
@@ -202,6 +214,20 @@ export class ReportsService {
     // ─────────────────────────────────────────────────────────────────────────
     async getAnalytics(user: any) {
         LOG('ANALYTICS', 'Fetching facility analytics', { organizationId: user.organizationId });
+
+        // Guard: if no organizationId, return zeros so dashboard renders without crashing
+        if (!user.organizationId) {
+            ERR('ANALYTICS', 'No organizationId — account has no linked facility. Returning defaults.');
+            return {
+                dataQualityScore: 100,
+                reportsThisMonth: 0,
+                reportsLastMonth: 0,
+                eocFlags: [],
+                advisory: { active: false },
+                _warning: 'Your account has no facility linked. Ask your EOC administrator to assign one.',
+            };
+        }
+
         const analytics = await this.repo.getFacilityAnalytics(user.organizationId);
         const advisory  = await this.repo.getActiveAdvisory(user.organizationId);
         LOG('ANALYTICS', '✅ Analytics fetched', { reportsThisMonth: analytics.reportsThisMonth });

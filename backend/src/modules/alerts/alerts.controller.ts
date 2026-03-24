@@ -7,8 +7,8 @@ export function createAlertsController(alertsService: AlertsService) {
 
     router.use('/*', requireAuth);
 
-    // PHO Level 2 Features
-    router.get('/inbox', requireRole(['pho']), async (c) => {
+    // EOC — alert management (previously PHO)
+    router.get('/inbox', requireRole(['eoc']), async (c) => {
         try {
             const user = c.get('user');
             const inbox = await alertsService.getInbox(user);
@@ -18,7 +18,7 @@ export function createAlertsController(alertsService: AlertsService) {
         }
     });
 
-    router.post('/:id/claim', requireRole(['pho']), async (c) => {
+    router.post('/:id/claim', requireRole(['eoc']), async (c) => {
         try {
             const alertId = c.req.param('id');
             const user = c.get('user');
@@ -29,13 +29,12 @@ export function createAlertsController(alertsService: AlertsService) {
         }
     });
 
-    router.patch('/:id/status', requireRole(['pho']), async (c) => {
+    router.patch('/:id/status', requireRole(['eoc']), async (c) => {
         try {
             const alertId = c.req.param('id');
             const user = c.get('user');
             const body = await c.req.json();
             const { status, data } = await alertsService.updateStatus(alertId, user, body);
-
             return c.json({ message: `Alert status updated to ${status}`, alert: data }, 200);
         } catch (error: any) {
             if (error.message.includes('Validation failed')) {
@@ -45,7 +44,7 @@ export function createAlertsController(alertsService: AlertsService) {
         }
     });
 
-    router.post('/broadcast', requireRole(['pho']), async (c) => {
+    router.post('/broadcast', requireRole(['eoc']), async (c) => {
         try {
             const user = c.get('user');
             const body = await c.req.json().catch(() => ({}));
@@ -56,7 +55,7 @@ export function createAlertsController(alertsService: AlertsService) {
         }
     });
 
-    router.post('/:id/escalate', requireRole(['pho']), async (c) => {
+    router.post('/:id/escalate', requireRole(['eoc']), async (c) => {
         try {
             const alertId = c.req.param('id');
             const result = await alertsService.escalateAlert(alertId);
@@ -66,8 +65,17 @@ export function createAlertsController(alertsService: AlertsService) {
         }
     });
 
-    // Civilian Level 0 Features — open to any authenticated user
-    // (civilians whose JWT hasn't refreshed may have stale role; broadening avoids 403)
+    router.get('/advisories', requireRole(['eoc']), async (c) => {
+        try {
+            const { data, error } = await alertsService.getPhoAdvisories();
+            if (error) return c.json({ error: error.message }, 500);
+            return c.json({ messages: data ?? [] }, 200);
+        } catch (error: any) {
+            return c.json({ error: 'Internal Server Error', details: error.message }, 500);
+        }
+    });
+
+    // Civilian / public — no role restriction beyond requireAuth
     router.get('/local', async (c) => {
         try {
             const lat = c.req.query('lat');
@@ -86,17 +94,6 @@ export function createAlertsController(alertsService: AlertsService) {
         try {
             const trends = await alertsService.getNationalTrends();
             return c.json({ trends }, 200);
-        } catch (error: any) {
-            return c.json({ error: 'Internal Server Error', details: error.message }, 500);
-        }
-    });
-
-    // PHO inbox: advisories from EOC
-    router.get('/advisories', requireRole(['pho']), async (c) => {
-        try {
-            const { data, error } = await alertsService.getPhoAdvisories();
-            if (error) return c.json({ error: error.message }, 500);
-            return c.json({ messages: data ?? [] }, 200);
         } catch (error: any) {
             return c.json({ error: 'Internal Server Error', details: error.message }, 500);
         }

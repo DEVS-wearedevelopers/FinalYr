@@ -5,9 +5,9 @@ import { supabase } from '../supabase.js';
 declare module 'hono' {
     interface ContextVariableMap {
         user: {
-            id: string;
-            email: string;
-            role: 'eoc' | 'pho' | 'institution' | 'civilian';
+            id: string | null;
+            email: string | null;
+            role: 'eoc' | 'institution' | 'civilian';
             organizationId?: string;
         };
     }
@@ -52,7 +52,7 @@ export const requireAuth = async (c: Context, next: Next) => {
         user.app_metadata?.role ||
         'civilian'
     );
-    const finalRole = String(rawRole).toLowerCase().trim() as 'eoc' | 'pho' | 'institution' | 'civilian';
+    const finalRole = String(rawRole).toLowerCase().trim() as 'eoc' | 'institution' | 'civilian';
 
     // Pull org from profile or metadata fallback
     const orgId = profile?.organization_id || user.user_metadata?.organizationId;
@@ -91,4 +91,27 @@ export const requireRole = (allowedRoles: string[]) => {
 
         await next();
     };
+};
+
+/**
+ * optionalAuth — used on routes that accept unauthenticated (community) submissions.
+ * - If a valid Bearer token is present: validates it and populates c.get('user') normally.
+ * - If no token (or invalid header): sets an anonymous civilian context and continues.
+ */
+export const optionalAuth = async (c: Context, next: Next) => {
+    const authHeader = c.req.header('Authorization');
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        // Token present — run full auth, let it 401 on invalid tokens
+        return requireAuth(c, next);
+    }
+
+    // No token — anonymous community context
+    c.set('user', {
+        id:             null,
+        email:          null,
+        role:           'civilian',
+        organizationId: undefined,
+    });
+    await next();
 };

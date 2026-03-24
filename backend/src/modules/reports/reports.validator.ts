@@ -9,7 +9,8 @@ export const reportSchema = z.object({
     }),
     symptomMatrix: z.array(z.string()).nonempty(),
     severity: z.number().min(1).max(10),
-    notes: z.string().optional()
+    notes: z.string().optional(),
+    source: z.enum(['institution', 'community']).default('institution'),
 });
 
 export type ReportInput = z.infer<typeof reportSchema>;
