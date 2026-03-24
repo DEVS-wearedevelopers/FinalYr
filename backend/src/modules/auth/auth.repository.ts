@@ -16,4 +16,13 @@ export class AuthRepository {
     async upsertProfile(profileData: any) {
         return await supabase.from('profiles').upsert([profileData], { onConflict: 'id' });
     }
+
+    async getProfile(userId: string) {
+        const { data } = await supabase
+            .from('profiles')
+            .select('role, organization_id, first_name, last_name')
+            .eq('id', userId)
+            .maybeSingle();
+        return data ?? null;
+    }
 }

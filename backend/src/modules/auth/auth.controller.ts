@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { AuthService } from './auth.service.js';
+import { supabase } from '../../supabase.js';
 
 export function createAuthController(authService: AuthService) {
     const router = new Hono();

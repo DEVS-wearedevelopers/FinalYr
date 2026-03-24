@@ -4,7 +4,7 @@ import { z } from 'zod';
 export const registerSchema = z.object({
     email: z.string().email(),
     password: z.string().min(8),
-    role: z.enum(['pho', 'institution', 'civilian']).default('civilian'),
+    role: z.enum(['eoc', 'institution', 'civilian']).default('civilian'),
     firstName: z.string().optional(),
     lastName: z.string().optional(),
     organizationId: z.string().optional()
@@ -70,24 +70,30 @@ export class AuthService {
             throw new Error(`Login Error: ${error?.message || 'Invalid credentials'}`);
         }
 
-        // ── Ensure profile row exists (critical for seeded/demo users) ──────────
-        // On first login for seeded users, profile may not exist — upsert it
-        // so role-based access control works immediately without re-seeding.
-        const meta = data.user.user_metadata ?? {};
-        if (meta.role && meta.role !== 'civilian') {
-            await this.authRepository.upsertProfile({
-                id: data.user.id,
-                email: data.user.email ?? email,
-                role: meta.role,
-                first_name: meta.firstName ?? null,
-                last_name:  meta.lastName  ?? null,
-                organization_id: meta.organizationId ?? null,
-            });
+        // ── Always fetch profile from DB (canonical source of role) ──────────────
+        // Users created via Supabase Dashboard have no user_metadata.role,
+        // so we ALWAYS read from the profiles table after login.
+        const profile = await this.authRepository.getProfile(data.user.id);
+
+        // If no profile yet but user_metadata has a role, upsert one now
+        if (!profile) {
+            const meta = data.user.user_metadata ?? {};
+            if (meta.role) {
+                await this.authRepository.upsertProfile({
+                    id:              data.user.id,
+                    email:           data.user.email ?? email,
+                    role:            meta.role,
+                    first_name:      meta.firstName ?? null,
+                    last_name:       meta.lastName  ?? null,
+                    organization_id: meta.organizationId ?? null,
+                });
+            }
         }
 
         return {
             session: data.session,
-            user: data.user
+            user:    data.user,
+            profile: profile ?? { role: 'civilian', organization_id: null },
         };
     }
 }
