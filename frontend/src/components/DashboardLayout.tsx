@@ -4,14 +4,25 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 
-// ── Decode JWT payload (no verify — just read claims for display) ──────────────
+// ── Decode token — supports both real Supabase JWTs and mock base64 tokens ────
 export function useUserFromToken() {
     const [user, setUser] = useState<{ name: string; email: string; role: string } | null>(null);
     useEffect(() => {
         const token = localStorage.getItem('token');
         if (!token) return;
         try {
-            const payload = JSON.parse(atob(token.split('.')[1]));
+            // Mock token: single base64 segment (no dots)
+            const segments = token.split('.');
+            const raw = segments.length >= 3 ? segments[1] : token;
+            const payload = JSON.parse(atob(raw));
+
+            // Mock token has { id, role, name, email }
+            if (payload.name && payload.role) {
+                setUser({ name: payload.name, email: payload.email ?? '', role: payload.role });
+                return;
+            }
+
+            // Real Supabase JWT
             const meta = payload.user_metadata ?? {};
             const firstName = meta.firstName || meta.first_name || '';
             const lastName  = meta.lastName  || meta.last_name  || '';
@@ -44,7 +55,7 @@ function useDarkMode() {
     useEffect(() => {
         // Only activate dark mode if the user has explicitly saved it.
         // Do NOT follow prefers-color-scheme — default is always light.
-        const saved = localStorage.getItem('merms-theme');
+        const saved = localStorage.getItem('domrs-theme');
         const initial = saved === 'dark';
         setDark(initial);
         document.documentElement.classList.toggle('dark', initial);
@@ -54,7 +65,7 @@ function useDarkMode() {
         setDark(d => {
             const next = !d;
             document.documentElement.classList.toggle('dark', next);
-            localStorage.setItem('merms-theme', next ? 'dark' : 'light');
+            localStorage.setItem('domrs-theme', next ? 'dark' : 'light');
             return next;
         });
     };
@@ -100,7 +111,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                         <path d="M12 2L2 22h20L12 2zm0 4.5l6.5 13h-13L12 6.5z" />
                     </svg>
                 </div>
-                <span className="font-bold text-lg tracking-tight text-slate-900 flex-1">MERMS</span>
+                <span className="font-bold text-lg tracking-tight text-slate-900 flex-1">DOMRS</span>
                 {/* Dark mode toggle */}
                 <button
                     onClick={toggle}
@@ -195,7 +206,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                         </svg>
                     </button>
-                    <span className="font-bold text-slate-900 tracking-tight">MERMS</span>
+                    <span className="font-bold text-slate-900 tracking-tight">DOMRS</span>
                     <button onClick={toggle} className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100">
                         {dark ? '☀️' : '🌙'}
                     </button>

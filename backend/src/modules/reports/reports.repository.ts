@@ -14,7 +14,7 @@ export class ReportsRepository {
     }
 
     async insertAiAlert(alertData: any) {
-        return await supabase.from('ai_alerts').insert([alertData]);
+        return await supabase.from('ai_alerts').insert([alertData]).select().single();
     }
 
     async getReportsFeed(organizationId: string) {

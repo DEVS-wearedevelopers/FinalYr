@@ -65,14 +65,14 @@ export default function NotFound() {
                     </Link>
                 </div>
 
-                {/* MERMS branding */}
+                {/* DOMRS branding */}
                 <div className={`mt-12 flex items-center gap-2 text-slate-400 text-xs transition-all duration-700 delay-300 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
                     <div className="w-5 h-5 bg-[#1e52f1] rounded-md flex items-center justify-center">
                         <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M12 2L2 22h20L12 2zm0 4.5l6.5 13h-13L12 6.5z" />
                         </svg>
                     </div>
-                    MERMS Platform
+                    DOMRS Platform
                 </div>
             </div>
         </div>

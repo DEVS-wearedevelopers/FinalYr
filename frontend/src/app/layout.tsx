@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MERMS — Medical Emergency Reporting & Monitoring System",
+  title: "DOMRS — Disease Outbreak Monitoring and Response System",
   description: "Real-time public health monitoring for Lagos State health facilities.",
 };
 

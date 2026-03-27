@@ -48,7 +48,7 @@ app.use('*', async (c, next) => {
 });
 
 // Basic health check route
-app.get('/', (c) => c.json({ status: 'ok', message: 'MERMS API is running' }));
+app.get('/', (c) => c.json({ status: 'ok', message: 'DOMRS API is running' }));
 
 // Mount routes
 app.route('/auth', authRouter);

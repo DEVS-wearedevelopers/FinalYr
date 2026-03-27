@@ -7,8 +7,8 @@ export function createAlertsController(alertsService: AlertsService) {
 
     router.use('/*', requireAuth);
 
-    // EOC — alert management (previously PHO)
-    router.get('/inbox', requireRole(['eoc']), async (c) => {
+    // EOC + PHO — alert management
+    router.get('/inbox', requireRole(['eoc', 'pho']), async (c) => {
         try {
             const user = c.get('user');
             const inbox = await alertsService.getInbox(user);
@@ -18,7 +18,7 @@ export function createAlertsController(alertsService: AlertsService) {
         }
     });
 
-    router.post('/:id/claim', requireRole(['eoc']), async (c) => {
+    router.post('/:id/claim', requireRole(['eoc', 'pho']), async (c) => {
         try {
             const alertId = c.req.param('id');
             const user = c.get('user');
@@ -29,7 +29,7 @@ export function createAlertsController(alertsService: AlertsService) {
         }
     });
 
-    router.patch('/:id/status', requireRole(['eoc']), async (c) => {
+    router.patch('/:id/status', requireRole(['eoc', 'pho']), async (c) => {
         try {
             const alertId = c.req.param('id');
             const user = c.get('user');
@@ -44,7 +44,7 @@ export function createAlertsController(alertsService: AlertsService) {
         }
     });
 
-    router.post('/broadcast', requireRole(['eoc']), async (c) => {
+    router.post('/broadcast', requireRole(['eoc', 'pho']), async (c) => {
         try {
             const user = c.get('user');
             const body = await c.req.json().catch(() => ({}));
@@ -55,7 +55,7 @@ export function createAlertsController(alertsService: AlertsService) {
         }
     });
 
-    router.post('/:id/escalate', requireRole(['eoc']), async (c) => {
+    router.post('/:id/escalate', requireRole(['eoc', 'pho']), async (c) => {
         try {
             const alertId = c.req.param('id');
             const result = await alertsService.escalateAlert(alertId);

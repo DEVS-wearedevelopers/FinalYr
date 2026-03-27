@@ -1,5 +1,5 @@
 # Reports Module
-Handles Institution Sentinel Reports submission and localized reporting for MERMS.
+Handles Institution Sentinel Reports submission and localized reporting for DOMRS.
 
 ## Purpose
 Allows registered healthcare institutions to submit Sentinel Reports regarding potential outbreak events. Handles the core Confidence-Based-Scoring (CBS) mechanism to gauge the urgency and likelihood of an outbreak and dispatches potential alerts to the `ai_alerts` table based on computed values.

@@ -1,5 +1,5 @@
 # Authentication Module
-This folder contains the Authentication module for the MERMS backend.
+This folder contains the Authentication module for the DOMRS backend.
 
 ## Purpose
 It handles user registration and login functionalities across all user roles ('eoc', 'pho', 'institution', 'civilian'). It validates credentials and interfaces with Supabase Auth and the `profiles` table.

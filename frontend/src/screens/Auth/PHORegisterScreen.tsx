@@ -236,7 +236,7 @@ export default function PHORegisterScreen() {
                         <div className="w-8 h-8 bg-[#1e52f1] rounded-lg flex items-center justify-center">
                             <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 22h20L12 2zm0 4.5l6.5 13h-13L12 6.5z" /></svg>
                         </div>
-                        MERMS
+                        DOMRS
                     </Link>
                 </div>
 
@@ -264,7 +264,7 @@ export default function PHORegisterScreen() {
                     </div>
                 </div>
 
-                <div className="relative z-10 pt-5 border-t border-white/10 text-xs text-slate-600">© 2026 MERMS Platform — Restricted Portal</div>
+                <div className="relative z-10 pt-5 border-t border-white/10 text-xs text-slate-600">© 2026 DOMRS Platform — Restricted Portal</div>
             </div>
 
             {/* ── Form Panel ── */}
@@ -277,7 +277,7 @@ export default function PHORegisterScreen() {
                             <div className="w-8 h-8 bg-[#1e52f1] rounded-lg flex items-center justify-center text-white">
                                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 22h20L12 2zm0 4.5l6.5 13h-13L12 6.5z" /></svg>
                             </div>
-                            MERMS
+                            DOMRS
                         </Link>
                     </div>
 

@@ -243,7 +243,7 @@ export default function InstitutionRegisterScreen() {
                         <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-[#1e52f1]">
                             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 22h20L12 2zm0 4.5l6.5 13h-13L12 6.5z" /></svg>
                         </div>
-                        MERMS
+                        DOMRS
                     </Link>
                 </div>
                 <div className="relative z-10 space-y-8">
@@ -252,7 +252,7 @@ export default function InstitutionRegisterScreen() {
                             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />Institution Registration
                         </div>
                         <h1 className="text-3xl font-bold leading-tight mb-3">Join Nigeria's Emergency Response Network</h1>
-                        <p className="text-white/70 text-sm leading-relaxed">Connect your facility to MERMS — real-time coordination, resource tracking, and instant health alerts.</p>
+                        <p className="text-white/70 text-sm leading-relaxed">Connect your facility to DOMRS — real-time coordination, resource tracking, and instant health alerts.</p>
                     </div>
                     <div className="space-y-3">
                         {[{ e: "🏥", t: "MDCN Verified", d: "Your institution is verified across the network." }, { e: "📊", t: "Live Dashboards", d: "Real-time beds, incidents & resource management." }, { e: "🔔", t: "Emergency Alerts", d: "Receive and respond to PHO-issued alerts." }].map(f => (
@@ -263,7 +263,7 @@ export default function InstitutionRegisterScreen() {
                         ))}
                     </div>
                 </div>
-                <div className="relative z-10 pt-5 border-t border-white/20 text-xs text-white/40">© 2026 MERMS Platform</div>
+                <div className="relative z-10 pt-5 border-t border-white/20 text-xs text-white/40">© 2026 DOMRS Platform</div>
             </div>
 
             {/* ── Form panel ── */}

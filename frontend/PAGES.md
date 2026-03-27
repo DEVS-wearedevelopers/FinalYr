@@ -1,6 +1,6 @@
-# MERMS Frontend — Page-by-Page Design Reference
+# DOMRS Frontend — Page-by-Page Design Reference
 
-> **Pu rpose:** Complete design & interaction reference for every page in the MERMS (Medical Emergency Response & Management System) frontend. Copy this document into any design AI (Figma AI, Galileo, v0, Relume, etc.) to generate or refine screens.
+> **Pu rpose:** Complete design & interaction reference for every page in the DOMRS (Medical Emergency Response & Management System) frontend. Copy this document into any design AI (Figma AI, Galileo, v0, Relume, etc.) to generate or refine screens.
 
 -------------------------------------------------------
 ## Design System ##
@@ -46,7 +46,7 @@
 **Layout:**
 - Full-viewport white page, centred content
 - Subtle repeating doodle/grid SVG background at 3% opacity
-- MERMS wordmark badge (blue dot indicator + text) at top of content
+- DOMRS wordmark badge (blue dot indicator + text) at top of content
 - Large bold heading: *"Building the structured Frontend with Style"*  
   → Keyword `Frontend` highlighted in primary blue
 - Subheading paragraph describing the modular architecture
@@ -61,7 +61,7 @@
 - `Sign In` → navigates to `/login`
 
 **Pending work:**
-- Replace the generic architecture description with actual MERMS product copy (mission statement, key features)
+- Replace the generic architecture description with actual DOMRS product copy (mission statement, key features)
 - Add a proper hero image or animated dashboard preview
 
 ---
@@ -74,7 +74,7 @@
 
 **Layout (AuthLayout):**
 - Centred card on white background
-- MERMS logo top-left of card
+- DOMRS logo top-left of card
 - Heading + subheading
 - Form content in the main body
 
@@ -161,7 +161,7 @@
 
 **Layout:**
 - Split screen: fixed blue brand panel (left, hidden on mobile) + scrollable form panel (right)
-- Brand panel: MERMS logo, "Join Nigeria's Emergency Response Network" heading, 3 feature pills (MDCN Verified, Live Dashboards, Emergency Alerts)
+- Brand panel: DOMRS logo, "Join Nigeria's Emergency Response Network" heading, 3 feature pills (MDCN Verified, Live Dashboards, Emergency Alerts)
 - 5-step progress stepper at top of form
 
 **Steps:**
@@ -225,7 +225,7 @@
 - Heading "Page not found"
 - Subheading
 - Two buttons: `Go home` (primary blue) + `Sign in` (outline)
-- MERMS logo wordmark at bottom
+- DOMRS logo wordmark at bottom
 - Entrance animation: elements fade + slide up on mount
 
 ---
@@ -430,7 +430,7 @@
 **File:** `src/components/DashboardLayout.tsx`
 
 - White left sidebar (264px width, `min-h-screen`)
-- MERMS logo + wordmark at top of sidebar
+- DOMRS logo + wordmark at top of sidebar
 - User badge (avatar initial, name, role pill in role-colour)
 - Nav items (icon + label, active = blue fill)
 - Sign out button at bottom (red hover)
@@ -440,7 +440,7 @@
 **File:** `src/components/AuthLayout.tsx`
 
 - Centred `max-w-sm` card on white/slate background
-- MERMS logo
+- DOMRS logo
 - Heading + subheading
 - Slot for form content
 
@@ -480,4 +480,4 @@
 | HTTP client | Axios (`apiClient`) |
 | Maps | Leaflet (lazy-loaded, SSR disabled) |
 | Auth | JWT via Supabase — stored in localStorage |
-| Backend base URL | `https://merms-backend.onrender.com` (configurable via `NEXT_PUBLIC_API_URL`) |
+| Backend base URL | `https://domrs-backend.onrender.com` (configurable via `NEXT_PUBLIC_API_URL`) |

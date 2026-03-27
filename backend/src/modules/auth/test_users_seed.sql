@@ -1,5 +1,5 @@
 -- ============================================================
--- MERMS: Test User Seeds
+-- DOMRS: Test User Seeds
 -- Run in Supabase SQL editor AFTER running institution_registrations.sql
 -- These create pre-verified accounts you can log in with immediately.
 -- ============================================================
@@ -11,24 +11,24 @@
 -- ─── Test User Credentials (save these) ─────────────────────────────────────
 --
 --  INSTITUTION
---    Email:    institution@merms.test
---    Password: MermsInst@2026
+--    Email:    institution@domrs.test
+--    Password: DomrsInst@2026
 --    Role:     institution
 --
 --  PHO
---    Email:    pho@merms.test
---    Password: MermsPHO@2026
+--    Email:    pho@domrs.test
+--    Password: DomrsPHO@2026
 --    Role:     pho
 --    Clearance: regional_admin
 --
 --  EOC ADMIN
---    Email:    eoc@merms.test
---    Password: MermsEOC@2026
+--    Email:    eoc@domrs.test
+--    Password: DomrsEOC@2026
 --    Role:     eoc
 --
 --  CIVILIAN
---    Email:    civilian@merms.test
---    Password: MermsCiv@2026
+--    Email:    civilian@domrs.test
+--    Password: DomrsCiv@2026
 --    Role:     civilian
 --
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -39,24 +39,24 @@
 -- Example profile inserts — update UUIDs after creating auth users:
 /*
 INSERT INTO public.profiles (id, email, role, first_name, last_name) VALUES
-  ('00000000-0000-0000-0000-000000000001', 'institution@merms.test', 'institution', 'Test', 'Institution'),
-  ('00000000-0000-0000-0000-000000000002', 'pho@merms.test',         'pho',         'Test', 'PHO'),
-  ('00000000-0000-0000-0000-000000000003', 'eoc@merms.test',         'eoc',         'Test', 'EOC'),
-  ('00000000-0000-0000-0000-000000000004', 'civilian@merms.test',    'civilian',    'Test', 'Civilian')
+  ('00000000-0000-0000-0000-000000000001', 'institution@domrs.test', 'institution', 'Test', 'Institution'),
+  ('00000000-0000-0000-0000-000000000002', 'pho@domrs.test',         'pho',         'Test', 'PHO'),
+  ('00000000-0000-0000-0000-000000000003', 'eoc@domrs.test',         'eoc',         'Test', 'EOC'),
+  ('00000000-0000-0000-0000-000000000004', 'civilian@domrs.test',    'civilian',    'Test', 'Civilian')
 ON CONFLICT (id) DO NOTHING;
 */
 
--- ─── Quick setup via MERMS Register API ────────────────────────────────────
+-- ─── Quick setup via DOMRS Register API ────────────────────────────────────
 -- Alternatively, just curl the /auth/register endpoint:
 --
 -- curl -X POST http://localhost:3000/auth/register \
 --   -H "Content-Type: application/json" \
---   -d '{"email":"pho@merms.test","password":"MermsPHO@2026","role":"pho","firstName":"Test","lastName":"PHO"}'
+--   -d '{"email":"pho@domrs.test","password":"DomrsPHO@2026","role":"pho","firstName":"Test","lastName":"PHO"}'
 --
 -- curl -X POST http://localhost:3000/auth/register \
 --   -H "Content-Type: application/json" \
---   -d '{"email":"eoc@merms.test","password":"MermsEOC@2026","role":"eoc","firstName":"Test","lastName":"EOC"}'
+--   -d '{"email":"eoc@domrs.test","password":"DomrsEOC@2026","role":"eoc","firstName":"Test","lastName":"EOC"}'
 --
 -- curl -X POST http://localhost:3000/auth/register \
 --   -H "Content-Type: application/json" \
---   -d '{"email":"civilian@merms.test","password":"MermsCiv@2026","role":"civilian","firstName":"Test","lastName":"Civilian"}'
+--   -d '{"email":"civilian@domrs.test","password":"DomrsCiv@2026","role":"civilian","firstName":"Test","lastName":"Civilian"}'

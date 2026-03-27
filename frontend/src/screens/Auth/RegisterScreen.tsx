@@ -139,7 +139,7 @@ export default function RegisterScreen() {
     return (
         <AuthLayout
             heading="Create an account"
-            subheading="Choose your role to get started on MERMS."
+            subheading="Choose your role to get started on DOMRS."
         >
             {!showBasicForm ? (
                 /* ── Role Selector ── */

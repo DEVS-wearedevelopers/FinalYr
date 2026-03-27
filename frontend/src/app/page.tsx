@@ -4,11 +4,11 @@ import Link from "next/link";
 
 // ─── Design tokens ──────────────────────────────────────────────────────────
 const PROJECT = {
-  name: "Medical Emergency Response & Management System",
-  short: "MERMS",
-  tagline: "Nigeria's Medical Emergency Response Network",
+  name: "Disease Outbreak Monitoring and Response System",
+  short: "DOMRS",
+  tagline: "Nigeria's Disease Outbreak Response Network",
   description:
-    "MERMS connects hospitals, public health officers and the Emergency Operations Centre in a live intelligence network — so that no outbreak goes undetected, and no response is delayed.",
+    "DOMRS connects hospitals, public health officers and the Emergency Operations Centre in a live intelligence network — so that no outbreak goes undetected, and no response is delayed.",
 };
 
 const TEAM = [
@@ -129,9 +129,9 @@ export default function LandingPage() {
             </div>
             <div>
               <div style={{ fontSize: 17, fontWeight: 800, lineHeight: 1.1, color: "#0f172a", letterSpacing: "-0.3px" }}>
-                MER<span style={{ color: "#1e52f1" }}>MS</span>
+                DOM<span style={{ color: "#1e52f1" }}>RS</span>
               </div>
-              <div style={{ fontSize: 9, color: "#64748b", fontWeight: 500, letterSpacing: "0.2px" }}>Medical Emergency Response</div>
+              <div style={{ fontSize: 9, color: "#64748b", fontWeight: 500, letterSpacing: "0.2px" }}>Disease Outbreak Response</div>
             </div>
           </div>
 
@@ -299,7 +299,7 @@ export default function LandingPage() {
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: 44 }}>
             <div style={{ display: "inline-block", background: "#e8eeff", color: "#1e52f1", fontSize: 11, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", padding: "4px 13px", borderRadius: 100, marginBottom: 12 }}>User Roles</div>
-            <h2 style={{ fontSize: "clamp(24px,3.5vw,38px)", fontWeight: 800, letterSpacing: "-1px" }}>Who is MERMS for?</h2>
+            <h2 style={{ fontSize: "clamp(24px,3.5vw,38px)", fontWeight: 800, letterSpacing: "-1px" }}>Who is DOMRS for?</h2>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 14 }}>
             {[
@@ -403,9 +403,9 @@ export default function LandingPage() {
                 <div style={{ width: 24, height: 24, background: "#1e52f1", borderRadius: 5, display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
                 </div>
-                <span style={{ fontSize: 15, fontWeight: 800, color: "white" }}>MERMS</span>
+                <span style={{ fontSize: 15, fontWeight: 800, color: "white" }}>DOMRS</span>
               </div>
-              <p style={{ fontSize: 12, lineHeight: 1.65, maxWidth: 190 }}>Medical Emergency Response<br />& Management System · Nigeria · 2025</p>
+              <p style={{ fontSize: 12, lineHeight: 1.65, maxWidth: 190 }}>Disease Outbreak Monitoring<br />& Response System · Nigeria · 2025</p>
             </div>
             <div style={{ display: "flex", gap: 36, flexWrap: "wrap" }}>
               {[
@@ -424,7 +424,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div style={{ borderTop: "1px solid rgba(255,255,255,.08)", paddingTop: 16, display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-            <span style={{ fontSize: 11 }}>© 2025 MERMS · Final Year Project · University of Calabar</span>
+            <span style={{ fontSize: 11 }}>© 2025 DOMRS · Final Year Project · University of Calabar</span>
             <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
               <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#22c55e", display: "block" }} />
               <span style={{ fontSize: 11, color: "#22c55e" }}>All systems operational</span>
