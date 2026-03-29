@@ -10,9 +10,19 @@ import {
   mockGetNationalTrends,
   mockGetLocalAlerts,
   mockSendBroadcast,
+  type BroadcastType,
+  type Broadcast,
 } from './mockData';
 
 export type AlertStatusUpdate = 'probable' | 'confirmed' | 'invalidated';
+
+export type BroadcastPayload = {
+  type: BroadcastType;
+  title: string;
+  message: string;
+  issuerName: string;
+  zone: string;
+};
 
 export const alertsService = {
   async getInbox() {
@@ -24,15 +34,8 @@ export const alertsService = {
   async updateStatus(alertId: string, status: AlertStatusUpdate) {
     return mockUpdateAlertStatus(alertId, status as any, '');
   },
-  async broadcast(message?: string) {
-    mockSendBroadcast({
-      type: 'general',
-      title: 'PHO Alert',
-      message: message || 'Public health advisory issued.',
-      issuerName: 'Dr. Amaka Osei (PHO)',
-      zone: 'Lagos Island / V.I.',
-    });
-    return { message: 'Broadcast sent' };
+  async broadcast(payload: BroadcastPayload): Promise<Broadcast> {
+    return mockSendBroadcast(payload);
   },
   async escalate(alertId: string) {
     mockEscalateAlert(alertId);

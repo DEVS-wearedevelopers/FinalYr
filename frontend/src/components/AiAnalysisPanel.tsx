@@ -1,6 +1,7 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { mockGetLatestAnalysis, generateAiAnalysis, type AiAnalysis } from '@/services/mockData';
+import { useMockSync } from '@/hooks/useMockSync';
 
 const RISK_CONFIG = {
   low:      { color: 'text-green-700',  bg: 'bg-green-50',   border: 'border-green-200', bar: 'bg-green-500',  pct: 15,  label: 'Low Risk',      dot: 'bg-green-500'  },
@@ -24,12 +25,12 @@ export default function AiAnalysisPanel({ compact = false, onBroadcast }: Props)
   // Client-only timestamp to avoid hydration mismatch
   const [genTime, setGenTime]   = useState('');
 
-  useEffect(() => {
-    // Initialize on client only — avoids SSR/client mismatch
+  const load = useCallback(() => {
     const a = mockGetLatestAnalysis();
     setAnalysis(a);
     if (a) setGenTime(new Date(a.generated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
   }, []);
+  useMockSync(load);
 
   const refresh = async () => {
     setLoading(true);

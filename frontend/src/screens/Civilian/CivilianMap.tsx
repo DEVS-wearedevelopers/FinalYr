@@ -100,7 +100,7 @@ const CivilianMap = forwardRef<CivilianMapHandle, Props>(function CivilianMap(
         .forEach(r => addMarker(LRef.current, mapInstanceRef.current, r, false));
     };
     const onStorage = (e: StorageEvent) => {
-      if (e.key === 'domrs_state_v1') {
+      if (e.key === 'domrs_state_v2') {
         // Import loadFromStorage to hydrate and then syncPins
         import('@/services/mockData').then(m => { m.loadFromStorage(); syncPins(); });
       }

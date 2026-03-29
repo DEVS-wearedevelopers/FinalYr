@@ -1,11 +1,12 @@
 'use client';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { DashboardLayout, useUserFromToken } from '@/components/DashboardLayout';
 import {
   mockGetUsers, mockGetAuditLogs, mockGetBroadcasts, mockGetReports,
   mockToggleUserActive, mockRemoveBroadcast, MOCK_STATE,
   type AuditLog, type Broadcast,
 } from '@/services/mockData';
+import { useMockSync } from '@/hooks/useMockSync';
 
 // ─── NAV ──────────────────────────────────────────────────────────────────────
 const NAV = [
@@ -197,11 +198,13 @@ export default function EOCDashboard() {
   const [confirm, setConfirm]       = useState<null | { message: string; action: () => void }>(null);
   const logEndRef                   = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setUsers(mockGetUsers());
     setLogs(mockGetAuditLogs());
     setBroadcasts(mockGetBroadcasts());
     setSysLogs(buildSystemLogs());
   }, []);
+  useMockSync(load);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3500); };
 

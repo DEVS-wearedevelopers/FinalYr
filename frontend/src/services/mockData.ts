@@ -170,83 +170,12 @@ export type AiAnalysis = {
 const now = () => new Date().toISOString();
 const ago = (min: number) => new Date(Date.now() - min * 60000).toISOString();
 
-// Keep 2 seed reports (enough to prime the demo)
-const SEED_REPORTS: Report[] = [
-  {
-    id: 'rpt-001',
-    source: 'sentinel',
-    organization_id: 'usr-institution-001',
-    patient_count: 14,
-    symptom_matrix: ['Fever', 'Cough', 'Difficulty breathing'],
-    severity: 8,
-    origin_address: 'Lagos General Hospital, Lagos Island',
-    origin_lat: 6.4541,
-    origin_lng: 3.3947,
-    notes: 'Multiple ward admissions with similar presentation.',
-    created_at: ago(120),
-    status: 'ai_scored',
-    cbs_score: 0.87,
-  },
-  {
-    id: 'rpt-002',
-    source: 'community',
-    organization_id: null,
-    patient_count: 3,
-    symptom_matrix: ['Fever', 'Headache', 'Body aches'],
-    severity: 5,
-    origin_address: 'Surulere, Lagos',
-    origin_lat: 6.4960,
-    origin_lng: 3.3560,
-    lga: 'Surulere',
-    created_at: ago(60),
-    status: 'pending_ai',
-    cbs_score: 0.42,
-  },
-];
-
-const SEED_ALERTS: AiAlert[] = [
-  {
-    id: 'alt-001',
-    report_id: 'rpt-001',
-    cbs_score: 0.87,
-    severity_index: 8,
-    status: 'investigating',
-    zone_id: 'Lagos Island / V.I.',
-    bypass_reason: null,
-    created_at: ago(120),
-    claimed_by: 'usr-pho-001',
-    sentinel_reports: {
-      organization_id: 'usr-institution-001',
-      patient_count: 14,
-      symptom_matrix: ['Fever', 'Cough', 'Difficulty breathing'],
-      origin_address: 'Lagos General Hospital, Lagos Island',
-      origin_lat: 6.4541,
-      origin_lng: 3.3947,
-    },
-  },
-];
-
-const SEED_BROADCASTS: Broadcast[] = [
-  {
-    id: 'brd-001',
-    type: 'respiratory',
-    title: 'Respiratory Advisory — Heightened Surveillance',
-    message:
-      'An advisory has been issued for respiratory illness in the Lagos Island zone. All facilities should increase surveillance and report unusual clusters immediately.',
-    issued_by: 'Dr. Amaka Osei (PHO)',
-    zone: 'Lagos Island / V.I.',
-    created_at: ago(200),
-    active: true,
-  },
-];
-
-const SEED_AUDIT_LOGS: AuditLog[] = [
-  { id: 'log-001', actor: 'Dr. Amaka Osei', action: 'Claimed alert alt-001', target: 'Alert #alt-001', timestamp: ago(115), severity: 'info' },
-  { id: 'log-002', actor: 'EOC Admin', action: 'Activated user usr-pho-001', target: 'Dr. Amaka Osei (PHO)', timestamp: ago(2880), severity: 'info' },
-  { id: 'log-003', actor: 'EOC Admin', action: 'Activated user usr-institution-001', target: 'Lagos General Hospital', timestamp: ago(4320), severity: 'info' },
-  { id: 'log-004', actor: 'Lagos General Hospital', action: 'Submitted sentinel report rpt-001', target: 'Report #rpt-001', timestamp: ago(120), severity: 'warning' },
-  { id: 'log-005', actor: 'Emeka Nwosu', action: 'Submitted community report rpt-002', target: 'Surulere, Lagos', timestamp: ago(60), severity: 'info' },
-];
+// ── Clean slate for demo — no pre-seeded data ─────────────────────────────────
+// All arrays are empty; the system only contains what users create live.
+const SEED_REPORTS:    Report[]    = [];
+const SEED_ALERTS:     AiAlert[]   = [];
+const SEED_BROADCASTS: Broadcast[] = [];
+const SEED_AUDIT_LOGS: AuditLog[]  = [];
 
 // ─── In-memory State ─────────────────────────────────────────────────────────
 export const MOCK_STATE = {
@@ -261,7 +190,8 @@ export const MOCK_STATE = {
 // ─── Event Bus + Cross-Tab Sync via localStorage ─────────────────────────────────────────
 export type MermsUpdateType = 'report' | 'alert' | 'broadcast' | 'user' | 'analysis';
 
-const STORAGE_KEY = 'domrs_state_v1';
+// v2 — bumped when seed data was cleared so old browser sessions don't restore stale data
+const STORAGE_KEY = 'domrs_state_v2';
 
 /** Save mutable slices of MOCK_STATE to localStorage for cross-tab sync */
 function saveToStorage() {
@@ -303,6 +233,14 @@ export function emitUpdate(type: MermsUpdateType) {
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('domrs:update', { detail: { type } }));
   }
+}
+
+// ─── Bootstrap: hydrate MOCK_STATE from localStorage on every page load ────────
+// This runs as soon as the module is imported (client-side only).
+// Without this, every page refresh wipes the in-memory state even though
+// localStorage still has data from the current session.
+if (typeof window !== 'undefined') {
+  loadFromStorage();
 }
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────

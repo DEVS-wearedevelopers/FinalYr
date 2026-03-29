@@ -1,7 +1,8 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { DashboardLayout, useUserFromToken } from '@/components/DashboardLayout';
 import { mockGetReports, type Report } from '@/services/mockData';
+import { useMockSync } from '@/hooks/useMockSync';
 
 const NAV = [
     { label: 'Overview', href: '/dashboard/institution', icon: <svg className="w-full h-full" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg> },
@@ -53,9 +54,8 @@ export default function InstitutionReports() {
     const [filter, setFilter]     = useState<Filter>('all');
     const [search, setSearch]     = useState('');
 
-    const load = () => setReports(mockGetReports()); // All reports — sentinel + community
-
-    useEffect(() => { load(); }, []);
+    const load = useCallback(() => setReports(mockGetReports()), []);
+    useMockSync(load);
 
     const visible = reports.filter(r => {
         if (filter === 'sentinel' && r.source !== 'sentinel') return false;

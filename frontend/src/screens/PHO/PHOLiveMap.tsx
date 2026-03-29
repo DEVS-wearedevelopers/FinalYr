@@ -167,7 +167,7 @@ export default function PHOLiveMap({ height = 440, alertsOnly = false }: PHOMapP
       }
     };
     const onStorage = (e: StorageEvent) => {
-      if (e.key === 'domrs_state_v1') {
+      if (e.key === 'domrs_state_v2') {
         import('@/services/mockData').then(m => { m.loadFromStorage(); refresh(); });
       }
     };

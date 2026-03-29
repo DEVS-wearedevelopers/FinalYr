@@ -278,23 +278,6 @@ export default function CivilianDashboard() {
           </div>
         )}
 
-        {/* Active Broadcast Banner from PHO */}
-        {broadcasts.length > 0 && (
-          <div className={`rounded-2xl p-5 flex items-start gap-4 ${
-            broadcasts[0].type === 'hemorrhagic' ? 'bg-red-600' :
-            broadcasts[0].type === 'enteric'     ? 'bg-amber-500' : 'bg-blue-600'
-          }`}>
-            <div className="text-2xl shrink-0">
-              {broadcasts[0].type === 'hemorrhagic' ? '🚨' : broadcasts[0].type === 'enteric' ? '⚠️' : '📢'}
-            </div>
-            <div className="flex-1">
-              <p className="font-black text-base text-white">{broadcasts[0].title}</p>
-              <p className="text-sm text-white/80 mt-1 leading-relaxed">{broadcasts[0].message}</p>
-              <p className="text-xs text-white/60 mt-2">Issued by {broadcasts[0].issued_by} · {broadcasts[0].zone}</p>
-            </div>
-          </div>
-        )}
-
         {/* PHO Broadcasts — show ABOVE map */}
         {broadcasts.length > 0 && (
           <section className="space-y-3">
@@ -316,6 +299,7 @@ export default function CivilianDashboard() {
             ))}
           </section>
         )}
+
 
         {/* Report button */}
         <div className="bg-blue-600 rounded-2xl p-5 text-white flex items-center justify-between gap-4 shadow-lg shadow-blue-600/25">

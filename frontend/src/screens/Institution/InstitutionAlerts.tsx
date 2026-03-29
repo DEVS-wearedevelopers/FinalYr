@@ -1,7 +1,8 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { DashboardLayout, useUserFromToken } from '@/components/DashboardLayout';
 import { mockGetAlerts, mockGetBroadcasts, type AiAlert, type Broadcast } from '@/services/mockData';
+import { useMockSync } from '@/hooks/useMockSync';
 
 const NAV = [
     { label: 'Overview', href: '/dashboard/institution', icon: <svg className="w-full h-full" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg> },
@@ -28,12 +29,14 @@ export default function InstitutionAlerts() {
     const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
     const [selected, setSelected]     = useState<AiAlert | null>(null);
 
-    useEffect(() => {
+    const load = useCallback(() => {
         const a = mockGetAlerts();
         setAlerts(a);
-        if (a.length > 0) setSelected(a[0]);
+        // Only auto-select on first load (when nothing is selected yet)
+        setSelected(prev => prev ?? (a.length > 0 ? a[0] : null));
         setBroadcasts(mockGetBroadcasts().filter(b => b.active));
     }, []);
+    useMockSync(load);
 
     return (
         <DashboardLayout navItems={NAV} role="institution" userName={tokenUser?.name || 'Institution'}>

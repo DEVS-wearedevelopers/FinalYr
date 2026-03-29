@@ -1,7 +1,8 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { DashboardLayout, useUserFromToken } from '@/components/DashboardLayout';
-import { alertsService } from '@/services/alertsService';
+import { mockGetAlerts, mockGetNationalTrends } from '@/services/mockData';
+import { useMockSync } from '@/hooks/useMockSync';
 
 const NAV = [
     { label: 'Alert Inbox', href: '/dashboard/pho',            icon: <svg className="w-full h-full" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg> },
@@ -42,15 +43,14 @@ function BarRow({ label, value, max, color }: { label: string; value: number; ma
 
 export default function PHOAnalytics() {
     const tokenUser = useUserFromToken();
-    const [trends, setTrends]   = useState<any>(null);
-    const [alerts, setAlerts]   = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [trends, setTrends]   = useState<ReturnType<typeof mockGetNationalTrends> | null>(null);
+    const [alerts, setAlerts]   = useState<ReturnType<typeof mockGetAlerts>>([]);
 
-    useEffect(() => {
-        Promise.all([alertsService.getNationalTrends(), alertsService.getInbox()])
-            .then(([t, a]) => { setTrends(t); setAlerts(a); })
-            .finally(() => setLoading(false));
+    const load = useCallback(() => {
+        setTrends(mockGetNationalTrends());
+        setAlerts(mockGetAlerts());
     }, []);
+    useMockSync(load);
 
     const confirmed   = alerts.filter(a => a.status === 'confirmed').length;
     const probable    = alerts.filter(a => a.status === 'probable').length;
@@ -73,10 +73,7 @@ export default function PHOAnalytics() {
                 <p className="text-slate-500 text-sm mt-0.5">Surveillance metrics and outbreak intelligence for your zone</p>
             </div>
 
-            {loading ? (
-                <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-[#1e52f1] border-t-transparent rounded-full animate-spin" /></div>
-            ) : (
-                <div className="space-y-5">
+            <div className="space-y-5">
                     {/* Top KPI row */}
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                         {[
@@ -179,7 +176,7 @@ export default function PHOAnalytics() {
                         )}
                     </div>
                 </div>
-            )}
         </DashboardLayout>
+
     );
 }
