@@ -44,21 +44,6 @@ export function initSyncChannel() {
   if (typeof window === 'undefined') return;  // SSR guard
   if (_channel) return;                        // already initialised
 
-  // Guard: if Supabase env vars aren't set (e.g. missing from Vercel dashboard)
-  // fail visibly in the console rather than crashing silently.
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  if (!supabaseUrl || supabaseUrl === 'undefined') {
-    console.error(
-      '[SyncManager] ❌ NEXT_PUBLIC_SUPABASE_URL is not set.\n' +
-      'Cross-device sync will NOT work.\n' +
-      'Fix: Go to Vercel → Project Settings → Environment Variables and add:\n' +
-      '  NEXT_PUBLIC_SUPABASE_URL\n' +
-      '  NEXT_PUBLIC_SUPABASE_ANON_KEY'
-    );
-    setStatus('disabled');
-    return;
-  }
-
   _channel = supabase.channel(CHANNEL_NAME, {
     config: { broadcast: { self: false } },   // don't receive own messages
   });
