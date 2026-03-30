@@ -176,19 +176,54 @@ export default function EOCDashboard() {
       </div>
 
       {/* ── Stats ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 mb-6">
         {[
-          { label: 'Active Users',      value: activeUsers,      color: 'bg-green-50 text-green-700 border-green-100',  icon: '✅' },
-          { label: 'Deactivated',       value: pendingUsers,     color: 'bg-slate-50 text-slate-600 border-slate-200',  icon: '🚫' },
-          { label: 'Active Broadcasts', value: activeBroadcasts, color: 'bg-amber-50 text-amber-700 border-amber-100',  icon: '📢' },
-          { label: 'Critical Events',   value: criticalLogs,     color: 'bg-red-50 text-red-700 border-red-100',        icon: '🚨' },
-          { label: 'Sync Errors',       value: sysErrors,        color: sysErrors > 0 ? 'bg-red-50 text-red-700 border-red-100' : 'bg-slate-50 text-slate-600 border-slate-200', icon: '💥' },
-          { label: 'Sync Warnings',     value: sysWarns,         color: sysWarns > 3 ? 'bg-amber-50 text-amber-700 border-amber-100' : 'bg-slate-50 text-slate-600 border-slate-200', icon: '⚠️' },
+          {
+            label: 'Active Users', value: activeUsers,
+            ring: 'border-green-100', bg: 'bg-green-50', num: 'text-green-700', sub: 'text-green-600',
+            icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5.121 17.804A9 9 0 1118.88 6.196M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
+          },
+          {
+            label: 'Deactivated', value: pendingUsers,
+            ring: 'border-slate-200', bg: 'bg-slate-50', num: 'text-slate-600', sub: 'text-slate-400',
+            icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>,
+          },
+          {
+            label: 'Active Broadcasts', value: activeBroadcasts,
+            ring: 'border-amber-100', bg: 'bg-amber-50', num: 'text-amber-700', sub: 'text-amber-600',
+            icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>,
+          },
+          {
+            label: 'Critical Events', value: criticalLogs,
+            ring: criticalLogs > 0 ? 'border-red-100' : 'border-slate-200',
+            bg: criticalLogs > 0 ? 'bg-red-50' : 'bg-slate-50',
+            num: criticalLogs > 0 ? 'text-red-700' : 'text-slate-600',
+            sub: criticalLogs > 0 ? 'text-red-500' : 'text-slate-400',
+            icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>,
+          },
+          {
+            label: 'Sync Errors', value: sysErrors,
+            ring: sysErrors > 0 ? 'border-red-100' : 'border-slate-200',
+            bg: sysErrors > 0 ? 'bg-red-50' : 'bg-slate-50',
+            num: sysErrors > 0 ? 'text-red-700' : 'text-slate-600',
+            sub: sysErrors > 0 ? 'text-red-500' : 'text-slate-400',
+            icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>,
+          },
+          {
+            label: 'Sync Warnings', value: sysWarns,
+            ring: sysWarns > 3 ? 'border-amber-100' : 'border-slate-200',
+            bg: sysWarns > 3 ? 'bg-amber-50' : 'bg-slate-50',
+            num: sysWarns > 3 ? 'text-amber-700' : 'text-slate-600',
+            sub: sysWarns > 3 ? 'text-amber-500' : 'text-slate-400',
+            icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+          },
         ].map(card => (
-          <div key={card.label} className={`rounded-2xl border p-4 ${card.color}`}>
-            <p className="text-xs font-bold opacity-70 uppercase tracking-wide">{card.label}</p>
-            <p className="text-3xl font-black mt-1">{card.value}</p>
-            <p className="text-lg mt-1">{card.icon}</p>
+          <div key={card.label} className={`rounded-2xl border ${card.ring} ${card.bg} p-4`}>
+            <div className={`flex items-center gap-1.5 ${card.sub} mb-2`}>
+              {card.icon}
+              <p className="text-[11px] font-bold uppercase tracking-wide opacity-80">{card.label}</p>
+            </div>
+            <p className={`text-3xl font-black ${card.num}`}>{card.value}</p>
           </div>
         ))}
       </div>
@@ -196,22 +231,22 @@ export default function EOCDashboard() {
       {/* ── Tabs ── */}
       <div className="flex gap-1 p-1 bg-slate-100 rounded-2xl w-fit mb-6 overflow-x-auto">
         {([
-          ['users',      '👥 Users'],
-          ['broadcasts', '📢 Broadcasts'],
-          ['logs',       '📋 Audit Log'],
-          ['system',     '🖥️ System Logs'],
-          ['live',       '📡 Live Devices'],
+          ['users',      'Users'],
+          ['broadcasts', 'Broadcasts'],
+          ['logs',       'Audit Log'],
+          ['system',     'Sync Log'],
+          ['live',       'Live Devices'],
         ] as const).map(([tab, label]) => (
           <button key={tab} onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${
+            className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all whitespace-nowrap flex items-center gap-1.5 ${
               activeTab === tab ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700'
-            } ${tab === 'system' && sysErrors > 0 ? 'relative' : ''}`}>
+            }`}>
             {label}
             {tab === 'system' && sysErrors > 0 && (
-              <span className="ml-1.5 text-xs bg-red-500 text-white px-1.5 py-0.5 rounded-full">{sysErrors}</span>
+              <span className="text-[10px] bg-red-500 text-white px-1.5 py-0.5 rounded-full font-bold leading-none">{sysErrors}</span>
             )}
             {tab === 'live' && liveDevices.length > 0 && (
-              <span className="ml-1.5 text-xs bg-green-500 text-white px-1.5 py-0.5 rounded-full">{liveDevices.length}</span>
+              <span className="text-[10px] bg-green-500 text-white px-1.5 py-0.5 rounded-full font-bold leading-none">{liveDevices.length}</span>
             )}
           </button>
         ))}
@@ -279,7 +314,7 @@ export default function EOCDashboard() {
                           bc.type === 'lockdown' ? 'bg-purple-100 text-purple-800 border-purple-200' :
                           bc.active ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-slate-50 text-slate-400 border-slate-200'
                         }`}>
-                          {bc.type === 'lockdown' ? '🔒 LOCKDOWN' : bc.active ? '📢 Active' : 'Removed'}
+                          {bc.type === 'lockdown' ? 'Lockdown' : bc.active ? 'Active' : 'Removed'}
                         </span>
                         <span className="text-xs text-slate-400">{rel(bc.created_at)}</span>
                       </div>
