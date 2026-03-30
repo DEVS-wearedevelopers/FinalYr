@@ -229,16 +229,64 @@ export function loadFromStorage(): boolean {
 }
 
 /**
- * Emit update: fires window custom event (same tab) + writes localStorage (other tabs).
- * Components subscribe to BOTH:
- *   window.addEventListener('domrs:update', load)          // same tab
- *   window.addEventListener('storage', onStorage)          // other tabs
+ * Emit update:
+ *   1. Fires window custom event (same tab, instant)
+ *   2. Writes localStorage (other tabs in same browser)
+ *   3. Sends full state to WS sync server (cross-device — phone ↔ PC)
  */
+
+// Singleton WS connection used only for outbound broadcasts
+let _syncWs: WebSocket | null = null;
+let _syncWsReady = false;
+
+function getSyncWs(): WebSocket | null {
+  if (typeof window === 'undefined') return null;
+  if (_syncWs && _syncWs.readyState === WebSocket.OPEN) return _syncWs;
+
+  // Derive WS URL same way as useWsSync hook
+  const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+  const wsUrl = apiBase
+    .replace(/^https/, 'wss')
+    .replace(/^http/, 'ws')
+    .replace(/:3001$/, ':3002')
+    .replace(/\/+$/, '');
+
+  try {
+    const ws = new WebSocket(wsUrl);
+    ws.onopen  = () => { _syncWsReady = true; };
+    ws.onclose = () => { _syncWsReady = false; _syncWs = null; };
+    ws.onerror = () => { ws.close(); };
+    _syncWs = ws;
+    _syncWsReady = false;
+    return ws;
+  } catch { return null; }
+}
+
+function broadcastToWs() {
+  const ws = getSyncWs();
+  if (!ws) return;
+  const payload = {
+    reports:    MOCK_STATE.reports,
+    alerts:     MOCK_STATE.alerts,
+    broadcasts: MOCK_STATE.broadcasts,
+    auditLogs:  MOCK_STATE.auditLogs,
+    ts:         Date.now(),
+  };
+  const msg = JSON.stringify({ type: 'update', payload });
+  if (ws.readyState === WebSocket.OPEN) {
+    ws.send(msg);
+  } else {
+    // Queue until open (fires once)
+    ws.addEventListener('open', () => ws.send(msg), { once: true });
+  }
+}
+
 export function emitUpdate(type: MermsUpdateType) {
   saveToStorage();
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('domrs:update', { detail: { type } }));
   }
+  broadcastToWs(); // 🔴 cross-device real-time push
 }
 
 // ─── Bootstrap: hydrate MOCK_STATE from localStorage on every page load ────────

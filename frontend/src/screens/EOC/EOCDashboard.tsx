@@ -7,6 +7,7 @@ import {
   type AuditLog, type Broadcast,
 } from '@/services/mockData';
 import { useMockSync } from '@/hooks/useMockSync';
+import { useWsSync } from '@/hooks/useWsSync';
 
 // ─── NAV ──────────────────────────────────────────────────────────────────────
 const NAV = [
@@ -205,6 +206,7 @@ export default function EOCDashboard() {
     setSysLogs(buildSystemLogs());
   }, []);
   useMockSync(load);
+  useWsSync(load); // cross-device real-time sync via WebSocket
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3500); };
 

@@ -8,6 +8,7 @@ import {
   type AiAlert, type Broadcast,
 } from '@/services/mockData';
 import { useMockSync } from '@/hooks/useMockSync';
+import { useWsSync } from '@/hooks/useWsSync';
 import type { CivilianMapHandle } from './CivilianMap';
 
 const CivilianMap = dynamic(() => import('./CivilianMap'), { ssr: false });
@@ -232,6 +233,7 @@ export default function CivilianDashboard() {
   };
 
   useMockSync(load); // same-tab + cross-tab sync
+  useWsSync(load);   // cross-device real-time sync via WebSocket
 
   const hasHighRisk = alerts.some(a => a.cbs_score >= 0.8);
 

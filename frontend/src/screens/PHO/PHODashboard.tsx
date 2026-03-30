@@ -10,6 +10,7 @@ import {
   type AiAlert, type Broadcast, type BroadcastType,
 } from '@/services/mockData';
 import { useMockSync } from '@/hooks/useMockSync';
+import { useWsSync } from '@/hooks/useWsSync';
 
 const PHOLiveMap = dynamic(() => import('./PHOLiveMap'), { ssr: false });
 
@@ -184,6 +185,7 @@ export default function PHODashboard() {
   };
 
   useMockSync(load); // same-tab + cross-tab sync
+  useWsSync(load);   // cross-device real-time sync via WebSocket
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3500); };
 

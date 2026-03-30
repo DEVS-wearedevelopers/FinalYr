@@ -9,6 +9,7 @@ import { alertsRouter } from './modules/alerts/index.js';
 import { adminRouter } from './modules/admin/index.js';
 import { institutionsRouter } from './modules/institutions/index.js';
 import { syslog } from './modules/admin/system-logger.js';
+import './wsSync.js'; // start WebSocket sync server on port 3002
 
 dotenv.config();
 
