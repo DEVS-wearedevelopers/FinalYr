@@ -194,5 +194,55 @@
       "organizationId": "Surulere"
     },
     "dbReportId": "99bd363a-3ab6-451b-a532-bcf69beff1d2"
+  },
+  {
+    "cacheId": "RPT-1774325585846-CXNTX",
+    "savedAt": "2026-03-24T04:13:05.846Z",
+    "status": "synced",
+    "payload": {
+      "patientCount": 1,
+      "originLocation": {
+        "lat": 0,
+        "lng": 0,
+        "address": "Surulere"
+      },
+      "symptomMatrix": [
+        "fever",
+        "cough"
+      ],
+      "severity": 5
+    },
+    "user": {
+      "id": null,
+      "email": null,
+      "role": "civilian",
+      "organizationId": "Surulere"
+    },
+    "dbReportId": "85706d75-9637-458e-a2a4-c0d5f7577a6b"
+  },
+  {
+    "cacheId": "RPT-1774325638613-J2IKF",
+    "savedAt": "2026-03-24T04:13:58.613Z",
+    "status": "synced",
+    "payload": {
+      "patientCount": 5,
+      "originLocation": {
+        "lat": 6.5244,
+        "lng": 3.3792,
+        "address": "Lagos Mainland"
+      },
+      "symptomMatrix": [
+        "Fever",
+        "Cough"
+      ],
+      "severity": 7
+    },
+    "user": {
+      "id": "c83636eb-acc3-42ad-a5e0-3bc238efaddb",
+      "email": "hospital1@merms.test",
+      "role": "institution",
+      "organizationId": "aaaaaaaa-0000-0000-0000-000000000001"
+    },
+    "dbReportId": "0f9ad1e5-3950-4b34-9a88-58c987061adc"
   }
 ]

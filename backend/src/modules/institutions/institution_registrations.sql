@@ -1,5 +1,5 @@
 -- ============================================================
--- MERMS: institution_registrations table
+-- DOMRS: institution_registrations table
 -- Run this in the Supabase SQL editor
 -- ============================================================
 
@@ -114,7 +114,7 @@ COMMENT ON COLUMN public.institution_registrations.status IS
     'Workflow state: pending → mdcn_check → document_review → admin_review → approved | rejected';
 
 COMMENT ON COLUMN public.institution_registrations.operating_license_path IS
-    'Path in Supabase Storage bucket (merms-docs) to the uploaded Operating License PDF.';
+    'Path in Supabase Storage bucket (domrs-docs) to the uploaded Operating License PDF.';
 
 COMMENT ON COLUMN public.institution_registrations.director_id_path IS
-    'Path in Supabase Storage bucket (merms-docs) to the uploaded Director Government ID.';
+    'Path in Supabase Storage bucket (domrs-docs) to the uploaded Director Government ID.';

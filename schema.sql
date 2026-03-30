@@ -1,5 +1,5 @@
 -- ==============================================================
--- MERMS Database Schema (Supabase)
+-- DOMRS Database Schema (Supabase)
 -- Run this in the Supabase SQL Editor to create the necessary tables
 -- Three roles: eoc, institution, civilian  (PHO absorbed into EOC)
 -- ==============================================================

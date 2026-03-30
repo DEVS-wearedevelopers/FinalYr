@@ -1,48 +1,53 @@
-import { apiClient } from './apiClient';
+/**
+ * reportsService — MOCK VERSION (no backend required)
+ * All calls are routed to the local mock data store.
+ */
+import {
+  mockGetReports,
+  mockSubmitReport,
+  INSTITUTION_COORDS,
+} from './mockData';
 
-export interface SubmitReportPayload {
+export const reportsService = {
+  async submitReport(payload: {
     patientCount: number;
-    originLocation: {
-        lat: number;
-        lng: number;
-        address?: string;
-    };
+    originLocation: { lat: number; lng: number; address?: string };
     symptomMatrix: string[];
     severity: number;
     notes?: string;
-}
+  }) {
+    const report = mockSubmitReport({
+      source: 'sentinel',
+      organization_id: 'usr-institution-001',
+      patient_count: payload.patientCount,
+      symptom_matrix: payload.symptomMatrix,
+      severity: payload.severity,
+      origin_address: payload.originLocation.address || 'Lagos General Hospital, Lagos Island',
+      origin_lat: payload.originLocation.lat || INSTITUTION_COORDS['usr-institution-001'].lat,
+      origin_lng: payload.originLocation.lng || INSTITUTION_COORDS['usr-institution-001'].lng,
+      notes: payload.notes,
+    });
+    return { report };
+  },
 
-export interface SentinelReport {
-    id: string;
-    created_at: string;
-    patient_count: number;
-    symptom_matrix: string[];
+  async getReportsFeed() {
+    return mockGetReports();
+  },
+
+  async submitCommunityReport(payload: {
+    lga: string;
+    symptoms: string[];
     severity: number;
-    status: string;
     notes?: string;
-    origin_address?: string;
-}
-
-export const reportsService = {
-    async submitReport(payload: SubmitReportPayload) {
-        const { data } = await apiClient.post('/reports', payload);
-        return data;
-    },
-
-    async getReportsFeed(): Promise<SentinelReport[]> {
-        const { data } = await apiClient.get('/reports/feed');
-        return data.reports ?? [];
-    },
-
-    async submitCommunityReport(payload: {
-        lga: string;
-        symptoms: string[];
-        severity: number;
-        reporter_name?: string;
-        notes?: string;
-    }) {
-        // No auth header needed — this endpoint is fully public
-        const { data } = await apiClient.post('/reports/community', payload);
-        return data;
-    },
+  }) {
+    const report = mockSubmitReport({
+      source: 'community',
+      patient_count: 1,
+      symptom_matrix: payload.symptoms,
+      severity: payload.severity,
+      origin_address: `${payload.lga}, Lagos`,
+      lga: payload.lga,
+    });
+    return { report, message: 'Community report submitted' };
+  },
 };

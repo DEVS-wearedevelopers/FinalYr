@@ -1,7 +1,11 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { DashboardLayout, useUserFromToken } from '@/components/DashboardLayout';
-import { alertsService } from '@/services/alertsService';
+import {
+  mockSendBroadcast, mockGetBroadcasts, mockRemoveBroadcast,
+  type Broadcast, type BroadcastType,
+} from '@/services/mockData';
+import { useMockSync } from '@/hooks/useMockSync';
 
 const NAV = [
     { label: 'Alert Inbox', href: '/dashboard/pho',            icon: <svg className="w-full h-full" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg> },
@@ -9,37 +13,38 @@ const NAV = [
     { label: 'Broadcasts',  href: '/dashboard/pho/broadcasts', icon: <svg className="w-full h-full" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg> },
 ];
 
+// These template types map to the visual UI labels (ADVISORY / WARNING / CRITICAL)
+// They are separate from BroadcastType — the selected template carries its own BroadcastType.
 const TEMPLATES = [
     {
         id: 't1', name: 'Respiratory Advisory',
-        type: 'ADVISORY' as const,
+        broadcastType: 'respiratory' as BroadcastType,
+        uiType: 'ADVISORY' as const,
         subject: 'Health Advisory: Respiratory Illness Activity in Your Zone',
         body: `Dear Community,\n\nHealthcare surveillance in your zone has detected an increase in respiratory illness cases. Common symptoms include persistent cough, fever, and difficulty breathing.\n\nWhat you should do:\n• Wear a mask in crowded enclosed spaces\n• Wash hands with soap frequently\n• Seek early medical care if symptoms develop\n• Avoid close contact with those who are unwell\n\nThis advisory will remain in effect pending further PHO assessment.\n\n— Public Health Office`,
     },
     {
         id: 't2', name: 'Enteric Outbreak Warning',
-        type: 'WARNING' as const,
+        broadcastType: 'enteric' as BroadcastType,
+        uiType: 'WARNING' as const,
         subject: 'URGENT: Enteric Disease Activity — Immediate Action Required',
         body: `Dear Community,\n\nHealth monitors have identified a cluster of enteric (gastrointestinal) cases in your zone. Symptoms include vomiting, diarrhoea, and abdominal cramps.\n\nImmediate steps:\n• Do NOT drink untreated water\n• Use oral rehydration salts if you experience diarrhoea\n• Report to your nearest health facility if symptoms are severe\n• Avoid sharing food or utensils with others\n\nAll facilities have been placed on heightened alert.\n\n— Public Health Office`,
     },
     {
         id: 't3', name: 'Hemorrhagic Alert',
-        type: 'CRITICAL' as const,
+        broadcastType: 'hemorrhagic' as BroadcastType,
+        uiType: 'CRITICAL' as const,
         subject: '🚨 CRITICAL HEALTH ALERT: Suspected Hemorrhagic Activity',
         body: `URGENT NOTICE TO ALL RESIDENTS\n\nHealth authorities have detected suspected hemorrhagic fever signals in your zone. This requires your IMMEDIATE attention.\n\nSymptoms to watch for:\n• Unexplained bleeding or bruising\n• High fever that does not respond to medication\n• Severe headache, muscle pain\n• Vomiting blood\n\nDO NOT delay — if any of these symptoms present, go to the nearest government health center NOW.\n\nAvoid self-medication. Contact tracing is underway.\n\n— PHO Emergency Operations`,
     },
     {
         id: 't4', name: 'All-Clear Notice',
-        type: 'ADVISORY' as const,
+        broadcastType: 'general' as BroadcastType,
+        uiType: 'ADVISORY' as const,
         subject: 'Health Update: Situation Resolved — Zone Clear',
         body: `Dear Community,\n\nWe are pleased to inform you that the health concern previously identified in your zone has been successfully investigated and resolved.\n\nNo further precautionary action is required at this time. Continue to practice good hygiene and report any unusual illness patterns to your nearest health facility.\n\nThank you for your co-operation during this period.\n\n— Public Health Office`,
     },
 ];
-
-type BroadcastLog = {
-    id: string; template: string; type: string;
-    sentAt: string; status: 'sent' | 'pending' | 'failed';
-};
 
 const TYPE_DOT: Record<string, string> = {
     ADVISORY: 'bg-blue-500', WARNING: 'bg-amber-500', CRITICAL: 'bg-red-500',
@@ -50,15 +55,32 @@ const TYPE_BADGE: Record<string, string> = {
     CRITICAL: 'bg-red-50 text-red-700 border-red-200',
 };
 
+// Map a BroadcastType to a UI type label for the broadcast log
+const BROADCAST_TYPE_TO_UI: Record<string, string> = {
+    respiratory: 'ADVISORY',
+    general:     'ADVISORY',
+    enteric:     'WARNING',
+    hemorrhagic: 'CRITICAL',
+    lockdown:    'CRITICAL',
+};
+
 export default function PHOBroadcasts() {
     const tokenUser = useUserFromToken();
-    const [selectedId, setSelectedId]   = useState(TEMPLATES[0].id);
-    const [customBody, setCustomBody]   = useState('');
-    const [useCustom, setUseCustom]     = useState(false);
-    const [sending, setSending]         = useState(false);
-    const [log, setLog]                 = useState<BroadcastLog[]>([]);
-    const [toast, setToast]             = useState('');
-    const [preview, setPreview]         = useState(false);
+    const issuerName = tokenUser?.name || 'Dr. Amaka Osei (PHO)';
+
+    const [selectedId, setSelectedId] = useState(TEMPLATES[0].id);
+    const [customBody, setCustomBody] = useState('');
+    const [useCustom, setUseCustom]   = useState(false);
+    const [sending, setSending]       = useState(false);
+    const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
+    const [toast, setToast]           = useState('');
+    const [preview, setPreview]       = useState(false);
+
+    // Load from shared state — updates whenever any tab calls emitUpdate('broadcast')
+    const load = useCallback(() => {
+        setBroadcasts(mockGetBroadcasts());
+    }, []);
+    useMockSync(load);
 
     const showToast = (m: string) => { setToast(m); setTimeout(() => setToast(''), 3000); };
     const tmpl = TEMPLATES.find(t => t.id === selectedId)!;
@@ -67,21 +89,23 @@ export default function PHOBroadcasts() {
     const send = async () => {
         setSending(true);
         try {
-            await alertsService.broadcast();
-            setLog(p => [{
-                id: `bc-${Date.now()}`, template: useCustom ? 'Custom Message' : tmpl.name,
-                type: useCustom ? 'ADVISORY' : tmpl.type,
-                sentAt: new Date().toISOString(), status: 'sent',
-            }, ...p]);
+            mockSendBroadcast({
+                type:       useCustom ? 'general' : tmpl.broadcastType,
+                title:      useCustom ? 'Custom Advisory' : tmpl.subject,
+                message:    body,
+                issuerName,
+                zone:       'Lagos Island / V.I.',
+            });
             showToast('Broadcast sent to all facilities in your zone ✓');
             if (useCustom) setCustomBody('');
+            // state refreshed automatically via useMockSync / domrs:update event
         } catch {
             showToast('Broadcast failed — try again');
         } finally { setSending(false); }
     };
 
     return (
-        <DashboardLayout navItems={NAV} role="pho" userName={tokenUser?.name || 'PHO'}>
+        <DashboardLayout navItems={NAV} role="pho" userName={issuerName}>
             {toast && <div className="fixed top-5 right-5 z-50 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-xl text-sm font-semibold">{toast}</div>}
 
             <div className="mb-6">
@@ -115,7 +139,7 @@ export default function PHOBroadcasts() {
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2">
                                                 <p className="text-sm font-semibold text-slate-800">{t.name}</p>
-                                                <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${TYPE_BADGE[t.type]}`}>{t.type}</span>
+                                                <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${TYPE_BADGE[t.uiType]}`}>{t.uiType}</span>
                                             </div>
                                         </div>
                                         <input type="radio" className="sr-only" checked={selectedId === t.id} onChange={() => setSelectedId(t.id)} />
@@ -150,7 +174,7 @@ export default function PHOBroadcasts() {
                     {preview && (
                         <div className="bg-slate-900 rounded-2xl p-5 space-y-3">
                             <div className="flex items-center gap-2">
-                                <div className={`w-2 h-2 rounded-full ${TYPE_DOT[useCustom ? 'ADVISORY' : tmpl.type]}`} />
+                                <div className={`w-2 h-2 rounded-full ${TYPE_DOT[useCustom ? 'ADVISORY' : tmpl.uiType] ?? 'bg-slate-400'}`} />
                                 <span className="text-xs font-bold text-slate-400 uppercase">Preview — as civilians will see it</span>
                             </div>
                             <p className="text-sm font-bold text-white">{useCustom ? 'Custom Advisory' : tmpl.subject}</p>
@@ -159,14 +183,14 @@ export default function PHOBroadcasts() {
                     )}
                 </div>
 
-                {/* Broadcast log */}
+                {/* Broadcast log — reads from shared MOCK_STATE */}
                 <div>
                     <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
                         <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
                             <p className="text-sm font-bold text-slate-800">Broadcast Log</p>
-                            <span className="text-xs text-slate-400">{log.length} sent this session</span>
+                            <span className="text-xs text-slate-400">{broadcasts.length} total</span>
                         </div>
-                        {log.length === 0 ? (
+                        {broadcasts.length === 0 ? (
                             <div className="py-16 text-center text-slate-400">
                                 <svg className="w-10 h-10 mx-auto mb-3 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
                                 <p className="text-sm font-semibold">No broadcasts yet</p>
@@ -174,18 +198,32 @@ export default function PHOBroadcasts() {
                             </div>
                         ) : (
                             <div className="divide-y divide-slate-50">
-                                {log.map(entry => (
-                                    <div key={entry.id} className="flex items-center gap-4 px-5 py-4">
-                                        <div className={`w-2 h-2 rounded-full shrink-0 ${TYPE_DOT[entry.type]}`} />
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-xs font-semibold text-slate-800">{entry.template}</p>
-                                            <p className="text-xs text-slate-400">{new Date(entry.sentAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</p>
+                                {broadcasts.map(bc => {
+                                    const uiType = BROADCAST_TYPE_TO_UI[bc.type] ?? 'ADVISORY';
+                                    return (
+                                        <div key={bc.id} className="flex items-center gap-4 px-5 py-4">
+                                            <div className={`w-2 h-2 rounded-full shrink-0 ${TYPE_DOT[uiType] ?? 'bg-slate-400'}`} />
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-xs font-semibold text-slate-800 truncate">{bc.title}</p>
+                                                <p className="text-xs text-slate-400">{new Date(bc.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</p>
+                                            </div>
+                                            <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${bc.active ? 'bg-green-50 text-green-700 border-green-200' : 'bg-slate-50 text-slate-400 border-slate-200'}`}>
+                                                {bc.active ? 'active' : 'removed'}
+                                            </span>
+                                            {bc.active && (
+                                                <button
+                                                    onClick={() => {
+                                                        mockRemoveBroadcast(bc.id);
+                                                        showToast('Broadcast retracted ✓');
+                                                    }}
+                                                    className="text-xs font-bold px-2.5 py-1 rounded-xl border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 transition-all shrink-0"
+                                                >
+                                                    Retract
+                                                </button>
+                                            )}
                                         </div>
-                                        <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${entry.status === 'sent' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
-                                            {entry.status}
-                                        </span>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         )}
                     </div>

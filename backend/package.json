@@ -1,7 +1,7 @@
 {
-  "name": "merms-backend",
+  "name": "domrs-backend",
   "version": "1.0.0",
-  "description": "MERMS Disease Monitoring and Control System Backend",
+  "description": "DOMRS — Disease Outbreak Monitoring and Response System Backend",
   "main": "dist/index.js",
   "type": "module",
   "scripts": {

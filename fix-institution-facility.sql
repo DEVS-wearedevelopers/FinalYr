@@ -1,19 +1,19 @@
 -- ============================================================
--- MERMS: Live DB migrations — run in Supabase SQL Editor
+-- DOMRS: Live DB migrations — run in Supabase SQL Editor
 -- ============================================================
 
--- 1. Create & link test facility for institution@merms.test
+-- 1. Create & link test facility for institution@domrs.test
 INSERT INTO public.facilities (id, name, status)
 VALUES (
     'aaaaaaaa-0000-0000-0000-000000000001',
-    'MERMS Test Hospital',
+    'DOMRS Test Hospital',
     'approved'
 )
 ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, status = EXCLUDED.status;
 
 UPDATE public.profiles
 SET organization_id = 'aaaaaaaa-0000-0000-0000-000000000001'
-WHERE email = 'institution@merms.test';
+WHERE email = 'institution@domrs.test';
 
 -- 2. Schema cleanup — drop deprecated columns
 ALTER TABLE public.profiles         DROP COLUMN IF EXISTS can_broadcast;

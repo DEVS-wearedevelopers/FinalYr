@@ -22,8 +22,8 @@ export function createReportsController(reportsService: ReportsService) {
             if (user.id && user.role !== 'institution') {
                 return c.json({
                     error: `Forbidden: authenticated report submission requires 'institution' role, got '${user.role}'`
-                }, 403);
-            }
+                }, 403);                                                                                                                                                                                                                                                                                                                                                                                                                
+            }                                                                           
 
             const { report, alert } = await reportsService.submitReport(user, body);
             return c.json({ message: 'Sentinel Report submitted successfully', report, alert }, 201);

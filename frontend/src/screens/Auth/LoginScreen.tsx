@@ -6,180 +6,159 @@ import { useRouter } from 'next/navigation';
 import { AuthLayout } from '@/components/AuthLayout';
 import { Input } from '@/ui/Input';
 import { Button } from '@/ui/Button';
-import { apiClient } from '@/services/apiClient';
-import { parseApiError } from '@/services/parseApiError';
-import { ErrorBanner } from '@/ui/ErrorBanner';
+import { mockLogin } from '@/services/mockData';
 
-// ─── Dev Test Accounts ────────────────────────────────────────────────────────
-const TEST_ACCOUNTS = [
-    // ── Demo-day accounts (simple passwords) ──
-    { role: 'EOC Admin',   email: 'admin@merms.test',     password: 'Admin1234',    color: 'text-red-600 bg-red-50 border-red-200' },
-    { role: 'Hospital 1',  email: 'hospital1@merms.test', password: 'Hospital1234', color: 'text-blue-600 bg-blue-50 border-blue-200' },
-    { role: 'Hospital 2',  email: 'hospital2@merms.test', password: 'Hospital1234', color: 'text-indigo-600 bg-indigo-50 border-indigo-200' },
-    { role: 'Civilian',    email: 'civilian@merms.test',  password: 'Civilian1234', color: 'text-green-600 bg-green-50 border-green-200' },
-    // ── Legacy dev accounts ──
-    { role: 'Institution (legacy)', email: 'institution@merms.test', password: 'MermsInst@2026', color: 'text-slate-500 bg-slate-50 border-slate-200' },
-    { role: 'EOC (legacy)',         email: 'eoc@merms.test',         password: 'MermsEOC@2026',  color: 'text-slate-500 bg-slate-50 border-slate-200' },
+// ─── Demo Accounts ────────────────────────────────────────────────────────────
+const DEMO_ACCOUNTS = [
+  { role: 'Civilian',     email: 'civilian@domrs.demo',  password: 'Demo1234', color: 'text-green-700 bg-green-50 border-green-200',    dot: 'bg-green-500' },
+  { role: 'Institution',  email: 'hospital@domrs.demo',  password: 'Demo1234', color: 'text-blue-700 bg-blue-50 border-blue-200',        dot: 'bg-blue-500'  },
+  { role: 'PHO',          email: 'pho@domrs.demo',        password: 'Demo1234', color: 'text-purple-700 bg-purple-50 border-purple-200',  dot: 'bg-purple-500'},
+  { role: 'EOC Admin',    email: 'eoc@domrs.demo',        password: 'Demo1234', color: 'text-red-700 bg-red-50 border-red-200',           dot: 'bg-red-500'   },
 ];
 
-// ─── Dev Login Shortcut ───────────────────────────────────────────────────────
-function DevLoginPanel({ onSelect }: { onSelect: (email: string, password: string) => void }) {
-    const [open, setOpen] = useState(false);
-    return (
-        <div className="rounded-2xl border border-dashed border-slate-300 overflow-hidden">
-            <button
-                type="button"
-                onClick={() => setOpen(o => !o)}
-                className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors text-left"
-            >
-                <div className="flex items-center gap-2.5">
-                    <div className="w-5 h-5 rounded-md bg-amber-100 flex items-center justify-center">
-                        <svg className="w-3 h-3 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L5 14.5m14.8.8l1.402 1.402c1 1 .3 2.7-1.1 2.7H3.9c-1.4 0-2.1-1.7-1.1-2.7L4.6 15.3" />
-                        </svg>
-                    </div>
-                    <span className="text-xs font-semibold text-slate-600">Dev Quick Login</span>
-                    <span className="text-xs text-slate-400">— skip registration</span>
-                </div>
-                <svg className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
-            </button>
-
-            {open && (
-                <div className="border-t border-dashed border-slate-200 px-4 py-3 space-y-2 bg-slate-50/50">
-                    {TEST_ACCOUNTS.map(acc => (
-                        <button
-                            key={acc.role}
-                            type="button"
-                            onClick={() => { onSelect(acc.email, acc.password); setOpen(false); }}
-                            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border text-left transition-all hover:scale-[1.01] active:scale-[0.99] ${acc.color}`}
-                        >
-                            <div className="flex items-center gap-2.5">
-                                <span className="text-xs font-bold w-20 shrink-0">{acc.role}</span>
-                                <span className="text-xs font-mono opacity-70 truncate">{acc.email}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 ml-2 shrink-0">
-                                <span className="text-xs font-mono opacity-60">{acc.password}</span>
-                                <svg className="w-3.5 h-3.5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                                </svg>
-                            </div>
-                        </button>
-                    ))}
-                    <p className="text-xs text-slate-400 text-center pt-1">
-                        Click any row to auto-fill credentials
-                    </p>
-                </div>
-            )}
+function DemoPanel({ onSelect }: { onSelect: (email: string, pw: string) => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="rounded-2xl border border-dashed border-amber-300 overflow-hidden bg-amber-50/40">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-4 py-3 hover:bg-amber-50 transition-colors text-left"
+      >
+        <div className="flex items-center gap-2.5">
+          <div className="w-5 h-5 rounded-md bg-amber-100 flex items-center justify-center text-amber-600 text-xs font-bold shrink-0">
+            🧪
+          </div>
+          <span className="text-xs font-semibold text-amber-800">Demo Quick Login</span>
+          <span className="text-xs text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full font-medium">4 accounts</span>
         </div>
-    );
+        <svg className={`w-4 h-4 text-amber-500 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="border-t border-amber-200 px-4 py-3 space-y-2 bg-white">
+          {DEMO_ACCOUNTS.map(acc => (
+            <button
+              key={acc.role}
+              type="button"
+              onClick={() => { onSelect(acc.email, acc.password); setOpen(false); }}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border text-left transition-all hover:scale-[1.01] active:scale-[0.99] ${acc.color}`}
+            >
+              <div className="flex items-center gap-2.5">
+                <span className={`w-2 h-2 rounded-full ${acc.dot} shrink-0`} />
+                <span className="text-xs font-bold w-24 shrink-0">{acc.role}</span>
+                <span className="text-xs font-mono opacity-70 truncate">{acc.email}</span>
+              </div>
+              <div className="flex items-center gap-1.5 ml-2 shrink-0">
+                <span className="text-xs font-mono opacity-60">{acc.password}</span>
+                <svg className="w-3.5 h-3.5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                </svg>
+              </div>
+            </button>
+          ))}
+          <p className="text-xs text-slate-400 text-center pt-1">Click any row to auto-fill &amp; sign in</p>
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ─── Role → dashboard map ─────────────────────────────────────────────────────
 const ROLE_REDIRECT: Record<string, string> = {
-    institution: '/dashboard/institution',
-    pho: '/dashboard/pho',
-    eoc: '/dashboard/eoc',
-    civilian: '/dashboard/civilian',
+  institution: '/dashboard/institution',
+  pho:         '/dashboard/pho',
+  eoc:         '/dashboard/eoc',
+  civilian:    '/dashboard/civilian',
 };
 
 // ─── Login Screen ─────────────────────────────────────────────────────────────
 export default function LoginScreen() {
-    const router = useRouter();
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const [apiErr, setApiErr] = useState('');
+  const router = useRouter();
+  const [email, setEmail]       = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError]        = useState('');
 
-    const doLogin = async (loginEmail: string, loginPassword: string) => {
-        setIsLoading(true);
-        setApiErr('');
-        try {
-            const { data } = await apiClient.post('/auth/login', { email: loginEmail, password: loginPassword });
-            if (data.session?.access_token) {
-                localStorage.setItem('token', data.session.access_token);
-                // Use the canonical role returned from the DB profile (most reliable).
-                // Falls back through user_metadata → 'civilian'.
-                const appRole: string = (
-                    data.profile?.role ||
-                    data.user?.user_metadata?.role ||
-                    'civilian'
-                ).toLowerCase();
-                const dest = ROLE_REDIRECT[appRole] ?? '/dashboard/civilian';
-                router.push(dest);
-            }
-        } catch (err: any) {
-            setApiErr(parseApiError(err));
-        } finally {
-            setIsLoading(false);
-        }
-    };
+  const doLogin = async (loginEmail: string, loginPassword: string) => {
+    setIsLoading(true);
+    setError('');
+    // Small simulated delay for realism
+    await new Promise(res => setTimeout(res, 500));
+    try {
+      const { token, role } = mockLogin(loginEmail, loginPassword);
+      localStorage.setItem('token', token);
+      localStorage.setItem('demo_role', role);
+      const dest = ROLE_REDIRECT[role] ?? '/dashboard/civilian';
+      router.push(dest);
+    } catch (err: any) {
+      setError(err.message || 'Login failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        await doLogin(email, password);
-    };
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await doLogin(email, password);
+  };
 
-    return (
-        <AuthLayout
-            heading="Welcome back"
-            subheading="Enter your credentials to access your account."
-        >
-            <form onSubmit={handleSubmit} className="space-y-5">
-                {apiErr && <ErrorBanner message={apiErr} onDismiss={() => setApiErr('')} />}
+  return (
+    <AuthLayout
+      heading="Welcome back"
+      subheading="Sign in to access your DOMRS dashboard."
+    >
+      {/* Offline badge */}
+      <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-4 py-2.5 mb-2">
+        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+        <span className="text-xs font-semibold text-green-700">Running offline — demo mode</span>
+        <span className="ml-auto text-xs text-green-500">No internet required</span>
+      </div>
 
-                <Input
-                    label="Email address"
-                    type="email"
-                    placeholder="name@company.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                />
+      <form onSubmit={handleSubmit} className="space-y-5">
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700 font-medium">
+            {error}
+          </div>
+        )}
 
-                <div className="space-y-1">
-                    <Input
-                        label="Password"
-                        type="password"
-                        placeholder="••••••••"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                    />
-                    <div className="flex justify-end pt-1">
-                        <Link href="/auth/forgot-password" className="text-sm font-medium text-[#1e52f1] hover:underline">
-                            Forgot password?
-                        </Link>
-                    </div>
-                </div>
+        <Input
+          label="Email address"
+          type="email"
+          placeholder="e.g. civilian@domrs.demo"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
 
-                <Button type="submit" fullWidth disabled={isLoading}>
-                    {isLoading ? (
-                        <span className="flex items-center gap-2">
-                            <svg className="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                            </svg>
-                            Signing in...
-                        </span>
-                    ) : 'Sign in'}
-                </Button>
-            </form>
+        <Input
+          label="Password"
+          type="password"
+          placeholder="••••••••"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
 
-            {/* ── Dev Quick Login ── */}
-            <div className="mt-5">
-                <DevLoginPanel onSelect={(e, p) => { setEmail(e); setPassword(p); setApiErr(''); doLogin(e, p); }} />
-            </div>
+        <Button type="submit" fullWidth disabled={isLoading}>
+          {isLoading ? (
+            <span className="flex items-center gap-2">
+              <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              Signing in…
+            </span>
+          ) : 'Sign in'}
+        </Button>
+      </form>
 
-            <div className="text-center mt-5">
-                <p className="text-sm text-slate-600">
-                    Don&#39;t have an account?{' '}
-                    <Link href="/register" className="font-semibold text-[#1e52f1] hover:underline">
-                        Create account
-                    </Link>
-                </p>
-            </div>
-        </AuthLayout>
-    );
+      {/* Demo quick login */}
+      <div className="mt-5">
+        <DemoPanel onSelect={(e, p) => { setEmail(e); setPassword(p); setError(''); doLogin(e, p); }} />
+      </div>
+    </AuthLayout>
+  );
 }

@@ -1,195 +1,209 @@
-### MERMS API Testing File
-### Use VS Code "REST Client" or "Thunder Client" to run these directly!
+### DOMRS API Testing File
+### Use VS Code "REST Client" or "Thunder Client" to run directly.
+### Run the login blocks first to capture tokens, then use them in subsequent requests.
 ####
-#####
-@baseUrl = http://localhost:3000
+@baseUrl = http://localhost:3001
 
 # ==========================================
-# 1. PUBLIC / GENERAL
+# HEALTH CHECK
 # ==========================================
 
 ### Health Check
 GET {{baseUrl}}/
 Accept: application/json
 
-### Get National Trends (Publicly aggregatable data)
-GET {{baseUrl}}/alerts/national
-Accept: application/json
-
 
 # ==========================================
-# 2. AUTHENTICATION
+# 1. AUTHENTICATION — Login all roles
 # ==========================================
 
-### Register an EOC Admin User
-# @name registerEoc
-POST {{baseUrl}}/auth/register
-Content-Type: application/json
-
-{
-    "email": "eoc@example.com",
-    "password": "password123",
-    "role": "eoc",
-    "firstName": "Super",
-    "lastName": "Admin"
-}
-
-### Register a PHO User
-# @name registerPho
-POST {{baseUrl}}/auth/register
-Content-Type: application/json
-
-{
-    "email": "pho@example.com",
-    "password": "password123",
-    "role": "pho",
-    "organizationId": "zone-777"
-}
-
-### Register an Institution
-# @name registerInstitution
-POST {{baseUrl}}/auth/register
-Content-Type: application/json
-
-{
-    "email": "hospital@example.com",
-    "password": "password123",
-    "role": "institution",
-    "organizationId": "hospital-404"
-}
-
-### Login (Obtain Token)
-# @name login
+### [BUG4] Login as EOC Admin (demo account)
+# @name loginEoc
 POST {{baseUrl}}/auth/login
 Content-Type: application/json
 
 {
-    "email": "eoc@example.com",
-    "password": "password123"
+    "email": "admin@domrs.test",
+    "password": "Admin1234"
 }
 
-### To test authenticated routes via cURL, set the returned access_token as a variable
-# In bash: export TOKEN="your_jwt_here"
-@token = {{login.response.body.session.access_token}}
-
-
-# ==========================================
-# 3. REPORTS (Role: institution)
-# ==========================================
-
-### Submit a Sentinel Report
-POST {{baseUrl}}/reports
+### Login as PHO (pho@domrs.test / PHO1234)
+# @name loginPho
+POST {{baseUrl}}/auth/login
 Content-Type: application/json
-Authorization: Bearer {{token}}
 
 {
-    "patientCount": 5,
+    "email": "pho@domrs.test",
+    "password": "PHO1234"
+}
+
+### Login as Hospital 1
+# @name loginHospital
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+    "email": "hospital1@domrs.test",
+    "password": "Hospital1234"
+}
+
+### Login as Civilian
+# @name loginCivilian
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+    "email": "civilian@domrs.test",
+    "password": "Civilian1234"
+}
+
+# ── Token shortcuts ──
+@eocToken      = {{loginEoc.response.body.session.access_token}}
+@phoToken      = {{loginPho.response.body.session.access_token}}
+@instToken     = {{loginHospital.response.body.session.access_token}}
+
+
+# ==========================================
+# 2. [BUG1] COMMUNITY REPORT — NO AUTH NEEDED
+# Must return 201 with zero auth headers
+# ==========================================
+
+### [BUG1] Community report — completely anonymous, no Authorization header
+POST {{baseUrl}}/reports/community
+Content-Type: application/json
+
+{
+    "lga": "Surulere",
+    "symptoms": ["fever", "headache", "cough"],
+    "severity": 6,
+    "reporter_name": "Anonymous Resident",
+    "notes": "Several neighbours have been ill since Monday"
+}
+
+
+# ==========================================
+# 3. [BUG2] INSTITUTION SENTINEL REPORT
+# Must return 201 with { report, alert }
+# ==========================================
+
+### [BUG2] Institution sentinel report — requires institution JWT
+POST {{baseUrl}}/reports
+Content-Type: application/json
+Authorization: Bearer {{instToken}}
+
+{
+    "patientCount": 12,
     "originLocation": {
         "lat": 6.5244,
         "lng": 3.3792,
-        "address": "Lagos Mainland"
+        "address": "Surulere General Hospital, Lagos"
     },
-    "symptomMatrix": ["Fever", "Cough", "Fatigue"],
+    "symptomMatrix": ["Fever", "Vomiting", "Diarrhoea", "Fatigue"],
     "severity": 8,
-    "notes": "Cluster of unknown respiratory distress"
+    "source": "institution",
+    "notes": "Cluster of suspected cholera cases — 4 admitted, 8 outpatient"
 }
 
-### View Own Facility's Submission Feed
+### View institution's own report feed
 GET {{baseUrl}}/reports/feed
-Authorization: Bearer {{token}}
+Authorization: Bearer {{instToken}}
 
-### Get Medical Director Analytics
+### View institution analytics
 GET {{baseUrl}}/reports/analytics
-Authorization: Bearer {{token}}
+Authorization: Bearer {{instToken}}
 
 
 # ==========================================
-# 4. ALERTS / PHO LEVEL (Role: pho)
+# 4. EOC ALERT MANAGEMENT
 # ==========================================
 
-### Get AI-Ranked Alert Inbox
+### EOC: Fetch alert inbox
 GET {{baseUrl}}/alerts/inbox
-Authorization: Bearer {{token}}
+Authorization: Bearer {{eocToken}}
 
-### Claim an Alert for Investigation (Replace :id)
-POST {{baseUrl}}/alerts/123e4567-e89b-12d3-a456-426614174000/claim
-Authorization: Bearer {{token}}
-
-### Promote Alert Status
-PATCH {{baseUrl}}/alerts/123e4567-e89b-12d3-a456-426614174000/status
+### EOC: Update alert status (replace UUID with a real alert id)
+PATCH {{baseUrl}}/alerts/00000000-0000-0000-0000-000000000001/status
 Content-Type: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer {{eocToken}}
 
 {
     "status": "confirmed"
 }
 
-### Broadcast Civilian Alerts
+### [BUG5] EOC: Broadcast advisory to all institutions
 POST {{baseUrl}}/alerts/broadcast
-Authorization: Bearer {{token}}
+Content-Type: application/json
+Authorization: Bearer {{eocToken}}
 
-### Escalate Alert to EOC
-POST {{baseUrl}}/alerts/123e4567-e89b-12d3-a456-426614174000/escalate
-Authorization: Bearer {{token}}
+{
+    "message": "EOC Advisory: Elevated respiratory illness in Lagos Mainland. All facilities must increase surveillance and report clusters immediately."
+}
 
-### Get Hyper-Local Zone Alerts (Role: civilian)
+
+# ==========================================
+# 5. [BUG4] PHO OPERATIONS
+# PHO has same access as EOC for alerts
+# ==========================================
+
+### [BUG4] PHO: Fetch alert inbox
+GET {{baseUrl}}/alerts/inbox
+Authorization: Bearer {{phoToken}}
+
+### [BUG4] PHO: Claim an alert (replace UUID with a real alert id)
+POST {{baseUrl}}/alerts/00000000-0000-0000-0000-000000000001/claim
+Authorization: Bearer {{phoToken}}
+
+### [BUG4] PHO: Broadcast advisory
+POST {{baseUrl}}/alerts/broadcast
+Content-Type: application/json
+Authorization: Bearer {{phoToken}}
+
+{
+    "message": "PHO Advisory: Enteric outbreak suspected in Ikeja zone. Facilities implement contact tracing immediately."
+}
+
+### [BUG4] PHO: Update alert status
+PATCH {{baseUrl}}/alerts/00000000-0000-0000-0000-000000000001/status
+Content-Type: application/json
+Authorization: Bearer {{phoToken}}
+
+{
+    "status": "probable"
+}
+
+### [BUG4] PHO: Escalate alert to EOC
+POST {{baseUrl}}/alerts/00000000-0000-0000-0000-000000000001/escalate
+Authorization: Bearer {{phoToken}}
+
+
+# ==========================================
+# 6. PUBLIC ENDPOINTS
+# ==========================================
+
+### National trends (public)
+GET {{baseUrl}}/alerts/national
+
+### Local alerts (public — requires auth token but no role restriction)
 GET {{baseUrl}}/alerts/local?lat=6.5244&lng=3.3792
-Authorization: Bearer {{token}}
+Authorization: Bearer {{phoToken}}
 
 
 # ==========================================
-# 5. ADMIN / EOC COMMAND (Role: eoc)
+# 7. EOC ADMIN OPERATIONS
 # ==========================================
 
-### Approve a Facility
-PATCH {{baseUrl}}/admin/facilities/facility-id-123/status
-Content-Type: application/json
-Authorization: Bearer {{token}}
+### EOC: System logs
+GET {{baseUrl}}/admin/logs?limit=50
+Authorization: Bearer {{eocToken}}
 
-{
-    "status": "approved"
-}
+### EOC: User list
+GET {{baseUrl}}/admin/users
+Authorization: Bearer {{eocToken}}
 
-### Appoint PHO and Assign to Zone
-POST {{baseUrl}}/admin/phos
-Content-Type: application/json
-Authorization: Bearer {{token}}
+### EOC: User list — filter PHO only
+GET {{baseUrl}}/admin/users?role=pho
+Authorization: Bearer {{eocToken}}
 
-{
-    "userId": "user-uuid-here",
-    "zoneId": "zone-777"
-}
-
-### Manage Response Protocol Library
-POST {{baseUrl}}/admin/protocols
-Content-Type: application/json
-Authorization: Bearer {{token}}
-
-{
-    "title": "Ebola Standard Response",
-    "content": "Isolate patient immediately...",
-    "diseaseId": "ebola-virus-disease"
-}
-
-### Override AI False Positive Alert
-POST {{baseUrl}}/admin/alerts/alert-id-123/override
-Content-Type: application/json
-Authorization: Bearer {{token}}
-
-{
-    "totpToken": "123456"
-}
-
-### Blacklist a Facility
-POST {{baseUrl}}/admin/facilities/facility-id-123/blacklist
-Content-Type: application/json
-Authorization: Bearer {{token}}
-
-{
-    "reason": "Repeated false reporting"
-}
-
-### Revoke PHO Broadcast Rights
-POST {{baseUrl}}/admin/phos/pho-id-123/revoke_broadcast
-Authorization: Bearer {{token}}
-
+### EOC: Institution registrations (for EOC map + dashboard)
+GET {{baseUrl}}/institutions
+Authorization: Bearer {{eocToken}}

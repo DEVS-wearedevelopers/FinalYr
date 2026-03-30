@@ -12,4 +12,6 @@ services:
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
+      - key: FRONTEND_URL
+        value: https://domrs.vercel.app
     plan: free

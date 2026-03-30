@@ -4,18 +4,18 @@ import Link from "next/link";
 
 // ─── Design tokens ──────────────────────────────────────────────────────────
 const PROJECT = {
-  name: "Medical Emergency Response & Management System",
-  short: "MERMS",
-  tagline: "Nigeria's Medical Emergency Response Network",
+  name: "Disease Outbreak Monitoring and Response System",
+  short: "DOMRS",
+  tagline: "Nigeria's Disease Outbreak Response Network",
   description:
-    "MERMS connects hospitals, public health officers and the Emergency Operations Centre in a live intelligence network — so that no outbreak goes undetected, and no response is delayed.",
+    "DOMRS connects hospitals, public health officers and the Emergency Operations Centre in a live intelligence network — so that no outbreak goes undetected, and no response is delayed.",
 };
 
 const TEAM = [
   { id: 1, name: "Ryan Offiong", matric: "22/0251", role: "Backend Engineer", focus: "API design, database architecture & server infrastructure", initials: "RO", color: "#1e52f1" },
-  { id: 2, name: "Team Member 2", matric: "22/XXXX", role: "Frontend Engineer", focus: "UI/UX design, React components & screens", initials: "TM", color: "#7c3aed" },
-  { id: 3, name: "Team Member 3", matric: "22/XXXX", role: "Full-Stack / AI", focus: "CBS scoring engine, AI pipeline & integrations", initials: "TM", color: "#0891b2" },
-  { id: "sup", name: "Dr. [Supervisor]", matric: null, role: "Project Supervisor", focus: "Academic oversight & system architecture review", initials: "SV", color: "#059669", isSupervisor: true },
+  { id: 2, name: "Benjamin", matric: "22/0271", role: "Frontend Engineer", focus: "UI/UX design, React components & screens", initials: "TM", color: "#7c3aed" },
+  { id: 3, name: "Jedidah", matric: "22/0010", role: "Full-Stack / AI", focus: "CBS scoring engine, AI pipeline & integrations", initials: "TM", color: "#0891b2" },
+  { id: "sup", name: "Me Okesola", matric: null, role: "Project Supervisor", focus: "Academic oversight & system architecture review", initials: "SV", color: "#059669", isSupervisor: true },
 ];
 
 const ROLE_BADGE: Record<string, { dot: string; bg: string; text: string }> = {
@@ -129,9 +129,9 @@ export default function LandingPage() {
             </div>
             <div>
               <div style={{ fontSize: 17, fontWeight: 800, lineHeight: 1.1, color: "#0f172a", letterSpacing: "-0.3px" }}>
-                MER<span style={{ color: "#1e52f1" }}>MS</span>
+                DOM<span style={{ color: "#1e52f1" }}>RS</span>
               </div>
-              <div style={{ fontSize: 9, color: "#64748b", fontWeight: 500, letterSpacing: "0.2px" }}>Medical Emergency Response</div>
+              <div style={{ fontSize: 9, color: "#64748b", fontWeight: 500, letterSpacing: "0.2px" }}>Disease Outbreak Response</div>
             </div>
           </div>
 
@@ -299,7 +299,7 @@ export default function LandingPage() {
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: 44 }}>
             <div style={{ display: "inline-block", background: "#e8eeff", color: "#1e52f1", fontSize: 11, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", padding: "4px 13px", borderRadius: 100, marginBottom: 12 }}>User Roles</div>
-            <h2 style={{ fontSize: "clamp(24px,3.5vw,38px)", fontWeight: 800, letterSpacing: "-1px" }}>Who is MERMS for?</h2>
+            <h2 style={{ fontSize: "clamp(24px,3.5vw,38px)", fontWeight: 800, letterSpacing: "-1px" }}>Who is DOMRS for?</h2>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 14 }}>
             {[
@@ -344,7 +344,7 @@ export default function LandingPage() {
           <div style={{ textAlign: "center", marginBottom: 44 }}>
             <div style={{ display: "inline-block", background: "#e8eeff", color: "#1e52f1", fontSize: 11, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", padding: "4px 13px", borderRadius: 100, marginBottom: 12 }}>The Team</div>
             <h2 style={{ fontSize: "clamp(24px,3.5vw,38px)", fontWeight: 800, letterSpacing: "-1px", lineHeight: 1.2 }}>Built by students,<br />supervised by excellence</h2>
-            <p style={{ marginTop: 10, fontSize: 14, color: "#64748b" }}>Final Year Project · University of Calabar · 2024 / 2025</p>
+            <p style={{ marginTop: 10, fontSize: 14, color: "#64748b" }}>Final Year Project · Babcock University · 2024 / 2025</p>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 14, marginBottom: 14 }}>
             {TEAM.filter(m => !("isSupervisor" in m)).map(m => (
@@ -369,7 +369,7 @@ export default function LandingPage() {
                 </div>
                 <p style={{ fontSize: 13, color: "#64748b", lineHeight: 1.55 }}>{s.focus}</p>
               </div>
-              <div style={{ fontSize: 12, color: "#15803d", fontWeight: 600 }}>🎓 University of Calabar</div>
+              <div style={{ fontSize: 12, color: "#15803d", fontWeight: 600 }}>🎓Babcock University</div>
             </div>
           ))}
         </div>
@@ -403,9 +403,9 @@ export default function LandingPage() {
                 <div style={{ width: 24, height: 24, background: "#1e52f1", borderRadius: 5, display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
                 </div>
-                <span style={{ fontSize: 15, fontWeight: 800, color: "white" }}>MERMS</span>
+                <span style={{ fontSize: 15, fontWeight: 800, color: "white" }}>DOMRS</span>
               </div>
-              <p style={{ fontSize: 12, lineHeight: 1.65, maxWidth: 190 }}>Medical Emergency Response<br />& Management System · Nigeria · 2025</p>
+              <p style={{ fontSize: 12, lineHeight: 1.65, maxWidth: 190 }}>Disease Outbreak Monitoring<br />& Response System · Nigeria · 2025</p>
             </div>
             <div style={{ display: "flex", gap: 36, flexWrap: "wrap" }}>
               {[
@@ -424,7 +424,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div style={{ borderTop: "1px solid rgba(255,255,255,.08)", paddingTop: 16, display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-            <span style={{ fontSize: 11 }}>© 2025 MERMS · Final Year Project · University of Calabar</span>
+            <span style={{ fontSize: 11 }}>© 2025 DOMRS · Final Year Project · Babcock University</span>
             <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
               <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#22c55e", display: "block" }} />
               <span style={{ fontSize: 11, color: "#22c55e" }}>All systems operational</span>

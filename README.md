@@ -1,6 +1,6 @@
-# MERMS - Disease Monitoring and Control System
+# DOMRS — Disease Outbreak Monitoring and Response System
 
-MERMS is a robust digital disease monitoring and control system designed to facilitate rapid reporting, AI-driven anomaly detection, and coordinated epidemic response across civilians, healthcare institutions, public health organizations, and national emergency operations centers.
+DOMRS is a robust digital disease outbreak monitoring and response system designed to facilitate rapid reporting, AI-driven anomaly detection, and coordinated epidemic response across civilians, healthcare institutions, public health organizations, and national emergency operations centres.
 
 ## 🚀 Tech Stack
 

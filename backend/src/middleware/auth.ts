@@ -7,7 +7,7 @@ declare module 'hono' {
         user: {
             id: string | null;
             email: string | null;
-            role: 'eoc' | 'institution' | 'civilian';
+            role: 'eoc' | 'institution' | 'civilian' | 'pho';
             organizationId?: string;
         };
     }
@@ -52,7 +52,7 @@ export const requireAuth = async (c: Context, next: Next) => {
         user.app_metadata?.role ||
         'civilian'
     );
-    const finalRole = String(rawRole).toLowerCase().trim() as 'eoc' | 'institution' | 'civilian';
+    const finalRole = String(rawRole).toLowerCase().trim() as 'eoc' | 'institution' | 'civilian' | 'pho';
 
     // Pull org from profile or metadata fallback
     const orgId = profile?.organization_id || user.user_metadata?.organizationId;

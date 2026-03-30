@@ -1,5 +1,5 @@
 /**
- * MERMS System Logger — v2
+ * DOMRS System Logger — v2
  * ─────────────────────────────────────────────────────────────────────────────
  * Written to:
  *   data/app.log   — all levels (JSONL, one entry per line)

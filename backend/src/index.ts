@@ -24,7 +24,6 @@ app.use('*', async (c, next) => {
     const duration = Date.now() - start;
     const status = c.res.status;
 
-    // Log all 4xx/5xx automatically
     if (status >= 400) {
         const user = c.get('user') as any;
         syslog.logRequestError({
@@ -47,10 +46,38 @@ app.use('*', async (c, next) => {
     }
 });
 
-// Basic health check route
-app.get('/', (c) => c.json({ status: 'ok', message: 'MERMS API is running' }));
+// ── Global error boundary ─────────────────────────────────────────────────────
+// Catches any unhandled throw from any route before it silently crashes
+app.onError((err, c) => {
+    const user = c.get('user') as any;
+    syslog.logRequestError({
+        method: c.req.method,
+        path: c.req.path,
+        status: 500,
+        error: { message: err.message },
+        userId: user?.id,
+        userEmail: user?.email,
+        userRole: user?.role,
+    });
+    return c.json({ error: 'Internal Server Error' }, 500);
+});
 
-// Mount routes
+// ── 404 boundary ──────────────────────────────────────────────────────────────
+// Prevents unmatched routes from falling through silently
+app.notFound((c) => {
+    syslog.logRequestError({
+        method: c.req.method,
+        path: c.req.path,
+        status: 404,
+        error: { message: `Route not found: ${c.req.method} ${c.req.path}` },
+    });
+    return c.json({ error: 'Not Found' }, 404);
+});
+
+// ── Health check ──────────────────────────────────────────────────────────────
+app.get('/', (c) => c.json({ status: 'ok', message: 'DOMRS API is running' }));
+
+// ── Mount routers ─────────────────────────────────────────────────────────────
 app.route('/auth', authRouter);
 app.route('/reports', reportsRouter);
 app.route('/alerts', alertsRouter);
