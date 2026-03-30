@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
+import CBSGuide from '@/components/CBSGuide';
 
 // ── Decode token — supports both real Supabase JWTs and mock base64 tokens ────
 export function useUserFromToken() {
@@ -217,6 +218,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                     {children}
                 </main>
             </div>
+
+            {/* CBS Guide — floating tab, available on every dashboard */}
+            <CBSGuide />
         </div>
     );
 };
