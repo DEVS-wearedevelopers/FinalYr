@@ -13,10 +13,11 @@ import { MOCK_STATE } from '@/services/mockData';
 import { syncLog } from '@/services/syncLogger';
 
 // WS is on the SAME port as the HTTP API — just swap the scheme.
+// Falls back to render.com prod URL so web deploy works without Vercel env vars.
 // Works for: localhost:3001, 192.168.x.x:3001, merms-backend.onrender.com
 function getWsUrl(): string {
   if (typeof window === 'undefined') return '';
-  const apiBase = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001')
+  const apiBase = (process.env.NEXT_PUBLIC_API_URL ?? 'https://merms-backend.onrender.com')
     .replace(/\/+$/, ''); // strip trailing slash
   return apiBase
     .replace(/^https:\/\//, 'wss://')
