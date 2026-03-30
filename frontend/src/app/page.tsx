@@ -13,9 +13,9 @@ const PROJECT = {
 
 const TEAM = [
   { id: 1, name: "Ryan Offiong", matric: "22/0251", role: "Backend Engineer", focus: "API design, database architecture & server infrastructure", initials: "RO", color: "#1e52f1" },
-  { id: 2, name: "Team Member 2", matric: "22/XXXX", role: "Frontend Engineer", focus: "UI/UX design, React components & screens", initials: "TM", color: "#7c3aed" },
-  { id: 3, name: "Team Member 3", matric: "22/XXXX", role: "Full-Stack / AI", focus: "CBS scoring engine, AI pipeline & integrations", initials: "TM", color: "#0891b2" },
-  { id: "sup", name: "Dr. [Supervisor]", matric: null, role: "Project Supervisor", focus: "Academic oversight & system architecture review", initials: "SV", color: "#059669", isSupervisor: true },
+  { id: 2, name: "Benjamin", matric: "22/0271", role: "Frontend Engineer", focus: "UI/UX design, React components & screens", initials: "TM", color: "#7c3aed" },
+  { id: 3, name: "Jedidah", matric: "22/0010", role: "Full-Stack / AI", focus: "CBS scoring engine, AI pipeline & integrations", initials: "TM", color: "#0891b2" },
+  { id: "sup", name: "Me Okesola", matric: null, role: "Project Supervisor", focus: "Academic oversight & system architecture review", initials: "SV", color: "#059669", isSupervisor: true },
 ];
 
 const ROLE_BADGE: Record<string, { dot: string; bg: string; text: string }> = {
@@ -344,7 +344,7 @@ export default function LandingPage() {
           <div style={{ textAlign: "center", marginBottom: 44 }}>
             <div style={{ display: "inline-block", background: "#e8eeff", color: "#1e52f1", fontSize: 11, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", padding: "4px 13px", borderRadius: 100, marginBottom: 12 }}>The Team</div>
             <h2 style={{ fontSize: "clamp(24px,3.5vw,38px)", fontWeight: 800, letterSpacing: "-1px", lineHeight: 1.2 }}>Built by students,<br />supervised by excellence</h2>
-            <p style={{ marginTop: 10, fontSize: 14, color: "#64748b" }}>Final Year Project · University of Calabar · 2024 / 2025</p>
+            <p style={{ marginTop: 10, fontSize: 14, color: "#64748b" }}>Final Year Project · Babcock University · 2024 / 2025</p>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 14, marginBottom: 14 }}>
             {TEAM.filter(m => !("isSupervisor" in m)).map(m => (
@@ -369,7 +369,7 @@ export default function LandingPage() {
                 </div>
                 <p style={{ fontSize: 13, color: "#64748b", lineHeight: 1.55 }}>{s.focus}</p>
               </div>
-              <div style={{ fontSize: 12, color: "#15803d", fontWeight: 600 }}>🎓 University of Calabar</div>
+              <div style={{ fontSize: 12, color: "#15803d", fontWeight: 600 }}>🎓Babcock University</div>
             </div>
           ))}
         </div>
@@ -424,7 +424,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div style={{ borderTop: "1px solid rgba(255,255,255,.08)", paddingTop: 16, display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-            <span style={{ fontSize: 11 }}>© 2025 DOMRS · Final Year Project · University of Calabar</span>
+            <span style={{ fontSize: 11 }}>© 2025 DOMRS · Final Year Project · Babcock University</span>
             <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
               <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#22c55e", display: "block" }} />
               <span style={{ fontSize: 11, color: "#22c55e" }}>All systems operational</span>
