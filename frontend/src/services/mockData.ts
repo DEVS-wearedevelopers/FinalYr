@@ -286,24 +286,20 @@ export function emitUpdate(type: MermsUpdateType) {
     window.dispatchEvent(new CustomEvent('domrs:update', { detail: { type } }));
   }
 
-  // ── Primary cross-device sync: Supabase Realtime Broadcast ──────────────────
-  // Works phone ↔ PC via Vercel frontend alone — no backend needed.
-  if (typeof window !== 'undefined') {
-    import('@/services/supabaseClient').then(({ supabase }) => {
-      supabase.channel('domrs-live-sync').send({
-        type: 'broadcast',
-        event: 'state-update',
-        payload: {
-          reports:    MOCK_STATE.reports,
-          alerts:     MOCK_STATE.alerts,
-          broadcasts: MOCK_STATE.broadcasts,
-          auditLogs:  MOCK_STATE.auditLogs,
-        },
-      });
+  // ── Cross-device sync via singleton subscribed Supabase channel ──────────
+  // broadcastState() only fires if channel status === 'connected'.
+  // initSyncChannel() is called by useSupabaseSync on mount — so it will
+  // be ready by the time any user action can trigger emitUpdate().
+  import('@/services/syncManager').then(({ broadcastState }) => {
+    broadcastState({
+      reports:    MOCK_STATE.reports,
+      alerts:     MOCK_STATE.alerts,
+      broadcasts: MOCK_STATE.broadcasts,
+      auditLogs:  MOCK_STATE.auditLogs,
     });
-  }
+  });
 
-  // ── Secondary: WS relay (same-network local demo fallback) ──────────────────
+  // ── Fallback: WS relay for same-network local demo ──────────────────────
   broadcastToWs();
 }
 

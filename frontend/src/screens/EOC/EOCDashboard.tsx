@@ -9,6 +9,7 @@ import {
 import { useMockSync } from '@/hooks/useMockSync';
 import { useWsSync } from '@/hooks/useWsSync';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
+import SyncStatusBadge from '@/components/SyncStatusBadge';
 
 // ─── NAV ──────────────────────────────────────────────────────────────────────
 const NAV = [
@@ -270,9 +271,12 @@ export default function EOCDashboard() {
           <h1 className="text-2xl font-bold text-slate-900">EOC Administration</h1>
           <p className="text-sm text-slate-500 mt-1">Account management · Authorization · Audit &amp; System logs</p>
         </div>
-        <div className="flex items-center gap-2 px-4 py-2 bg-red-50 border border-red-200 rounded-xl">
-          <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-          <span className="text-xs font-bold text-red-700">EOC Admin — Full Access</span>
+        <div className="flex items-center gap-2">
+          <SyncStatusBadge />
+          <div className="flex items-center gap-2 px-4 py-2 bg-red-50 border border-red-200 rounded-xl">
+            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+            <span className="text-xs font-bold text-red-700">EOC Admin — Full Access</span>
+          </div>
         </div>
       </div>
 

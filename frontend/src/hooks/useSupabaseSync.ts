@@ -1,46 +1,31 @@
 'use client';
 /**
- * useSupabaseSync — Real-time cross-device sync via Supabase Realtime Broadcast.
+ * useSupabaseSync — hooks a dashboard into the singleton sync channel.
  *
- * Uses a shared Supabase channel ('domrs-live-sync') to broadcast MOCK_STATE
- * updates to every connected client (phone, PC, tablet) instantly — zero backend
- * needed, works with the Vercel frontend alone.
- *
- * Flow:
- *   Any device mutates state → emitUpdate() → broadcasts via Supabase channel
- *   All other devices → receive broadcast → merge into MOCK_STATE → re-render
+ * Calls initSyncChannel() once to ensure the channel is subscribed,
+ * then registers a listener for incoming state payloads.
  */
 import { useEffect } from 'react';
-import { supabase } from '@/services/supabaseClient';
 import { MOCK_STATE } from '@/services/mockData';
-
-export const SYNC_CHANNEL = 'domrs-live-sync';
-export const SYNC_EVENT   = 'state-update';
+import { initSyncChannel, onStateReceived } from '@/services/syncManager';
 
 export function useSupabaseSync(load: () => void) {
   useEffect(() => {
-    const channel = supabase
-      .channel(SYNC_CHANNEL)
-      .on(
-        'broadcast',
-        { event: SYNC_EVENT },
-        ({ payload }) => {
-          if (!payload) return;
-          // Merge fresh state from the broadcasting device into our MOCK_STATE
-          if (Array.isArray(payload.reports))    MOCK_STATE.reports    = payload.reports;
-          if (Array.isArray(payload.alerts))     MOCK_STATE.alerts     = payload.alerts;
-          if (Array.isArray(payload.broadcasts)) MOCK_STATE.broadcasts = payload.broadcasts;
-          if (Array.isArray(payload.auditLogs))  MOCK_STATE.auditLogs  = payload.auditLogs;
+    // Ensure the singleton channel is alive
+    initSyncChannel();
 
-          // Trigger re-render on this device
-          window.dispatchEvent(new CustomEvent('domrs:update', { detail: { type: 'supabase' } }));
-          load();
-        }
-      )
-      .subscribe();
+    // Register listener for incoming payloads from other devices
+    const unsub = onStateReceived((payload) => {
+      if (Array.isArray(payload.reports))    MOCK_STATE.reports    = payload.reports    as typeof MOCK_STATE.reports;
+      if (Array.isArray(payload.alerts))     MOCK_STATE.alerts     = payload.alerts     as typeof MOCK_STATE.alerts;
+      if (Array.isArray(payload.broadcasts)) MOCK_STATE.broadcasts = payload.broadcasts as typeof MOCK_STATE.broadcasts;
+      if (Array.isArray(payload.auditLogs))  MOCK_STATE.auditLogs  = payload.auditLogs  as typeof MOCK_STATE.auditLogs;
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+      // Trigger re-render on this device
+      window.dispatchEvent(new CustomEvent('domrs:update', { detail: { type: 'supabase' } }));
+      load();
+    });
+
+    return unsub;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 }

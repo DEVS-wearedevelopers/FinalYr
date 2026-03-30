@@ -11,6 +11,7 @@ import {
 import { useMockSync } from '@/hooks/useMockSync';
 import { useWsSync } from '@/hooks/useWsSync';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
+import SyncStatusBadge from '@/components/SyncStatusBadge';
 import type { CivilianMapHandle } from '@/screens/Civilian/CivilianMap';
 
 // Load map with no SSR — shares same map component as civilian view
@@ -283,6 +284,7 @@ export default function InstitutionDashboard() {
           <div className="h-4 w-px bg-slate-200" />
           <span className="text-sm text-slate-600"><span className="font-bold text-slate-900">{todayCount}</span> report{todayCount !== 1 ? 's' : ''} today</span>
         </div>
+        <SyncStatusBadge />
         {broadcasts.length > 0 && (
           <span className={`text-xs font-bold px-3 py-1.5 rounded-full border border-${activeLockdown ? 'purple' : 'amber'}-200 bg-${activeLockdown ? 'purple' : 'amber'}-50 text-${activeLockdown ? 'purple' : 'amber'}-800`}>
             {activeLockdown ? '🔒 Lockdown Active' : `📢 ${broadcasts.length} advisory`}
