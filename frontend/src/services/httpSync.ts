@@ -18,8 +18,17 @@
 import { MOCK_STATE } from '@/services/mockData';
 import { syncLog } from '@/services/syncLogger';
 
-const API = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001')
+/**
+ * API base URL resolution:
+ *  1. NEXT_PUBLIC_API_URL env var (set locally in .env.local or Vercel dashboard)
+ *  2. Hardcoded render.com production URL — same pattern as supabaseClient.ts
+ *
+ * This means the web app always reaches the backend without needing Vercel env vars.
+ * Local dev: set NEXT_PUBLIC_API_URL=http://localhost:3001 in .env.local
+ */
+const API = (process.env.NEXT_PUBLIC_API_URL ?? 'https://merms-backend.onrender.com')
   .replace(/\/$/, '');
+
 
 // ── Stable device ID (survives re-renders, resets on tab close) ──────────────
 function getDeviceId(): string {
