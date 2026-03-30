@@ -11,6 +11,7 @@ import {
 } from '@/services/mockData';
 import { useMockSync } from '@/hooks/useMockSync';
 import { useWsSync } from '@/hooks/useWsSync';
+import { useSupabaseSync } from '@/hooks/useSupabaseSync';
 
 const PHOLiveMap = dynamic(() => import('./PHOLiveMap'), { ssr: false });
 
@@ -184,8 +185,9 @@ export default function PHODashboard() {
     setBroadcasts(mockGetBroadcasts());
   };
 
-  useMockSync(load); // same-tab + cross-tab sync
-  useWsSync(load);   // cross-device real-time sync via WebSocket
+  useMockSync(load);       // same-tab + cross-tab (same browser)
+  useWsSync(load);         // same-network local demo fallback
+  useSupabaseSync(load);   // ✅ cross-device: phone ↔ PC via Vercel
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3500); };
 

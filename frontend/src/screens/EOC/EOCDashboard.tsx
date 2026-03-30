@@ -8,6 +8,7 @@ import {
 } from '@/services/mockData';
 import { useMockSync } from '@/hooks/useMockSync';
 import { useWsSync } from '@/hooks/useWsSync';
+import { useSupabaseSync } from '@/hooks/useSupabaseSync';
 
 // ─── NAV ──────────────────────────────────────────────────────────────────────
 const NAV = [
@@ -206,7 +207,8 @@ export default function EOCDashboard() {
     setSysLogs(buildSystemLogs());
   }, []);
   useMockSync(load);
-  useWsSync(load); // cross-device real-time sync via WebSocket
+  useWsSync(load);         // same-network local demo fallback
+  useSupabaseSync(load);   // ✅ cross-device: phone ↔ PC via Vercel
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3500); };
 

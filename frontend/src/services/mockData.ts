@@ -285,7 +285,26 @@ export function emitUpdate(type: MermsUpdateType) {
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('domrs:update', { detail: { type } }));
   }
-  broadcastToWs(); // 🔴 cross-device real-time push
+
+  // ── Primary cross-device sync: Supabase Realtime Broadcast ──────────────────
+  // Works phone ↔ PC via Vercel frontend alone — no backend needed.
+  if (typeof window !== 'undefined') {
+    import('@/services/supabaseClient').then(({ supabase }) => {
+      supabase.channel('domrs-live-sync').send({
+        type: 'broadcast',
+        event: 'state-update',
+        payload: {
+          reports:    MOCK_STATE.reports,
+          alerts:     MOCK_STATE.alerts,
+          broadcasts: MOCK_STATE.broadcasts,
+          auditLogs:  MOCK_STATE.auditLogs,
+        },
+      });
+    });
+  }
+
+  // ── Secondary: WS relay (same-network local demo fallback) ──────────────────
+  broadcastToWs();
 }
 
 // ─── Bootstrap: hydrate MOCK_STATE from localStorage on every page load ────────
