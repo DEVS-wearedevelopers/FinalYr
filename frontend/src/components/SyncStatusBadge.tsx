@@ -1,104 +1,143 @@
 'use client';
+/**
+ * SyncStatusBadge — multi-transport sync indicator.
+ *
+ * Shows the real health of every sync layer:
+ *  • WS-RELAY  (WebSocket to local backend)
+ *  • HTTP-RELAY (polling render.com / local backend)
+ *  • SUPABASE-RT (Supabase Realtime broadcast channel)
+ *
+ * Replaces the old single-channel "Local only" badge that only reflected
+ * the Supabase channel state and hid WS/HTTP activity entirely.
+ */
 import React, { useEffect, useState } from 'react';
-import { initSyncChannel, onStatusChange, getLastSyncAt, getDiagnostics, type SyncStatus } from '@/services/syncManager';
+import {
+  initSyncChannel, onStatusChange, getLastSyncAt, type SyncStatus,
+} from '@/services/syncManager';
+import { onSyncLogChange, getSyncLogs } from '@/services/syncLogger';
 
-export default function SyncStatusBadge() {
-  const [status, setStatus]     = useState<SyncStatus>('connecting');
-  const [expanded, setExpanded] = useState(false);
-  const [diag, setDiag]         = useState(getDiagnostics());
+// Derive WS + HTTP status from sync log entries
+function deriveTransportStatus(module: string): 'ok' | 'warn' | 'error' | 'idle' {
+  const entries = getSyncLogs().filter(e => e.module === module).slice(0, 5);
+  if (entries.length === 0) return 'idle';
+  const latest = entries[0];
+  if (latest.level === 'SUCCESS' || latest.level === 'INFO')   return 'ok';
+  if (latest.level === 'WARN')   return 'warn';
+  if (latest.level === 'ERROR')  return 'error';
+  return 'idle';
+}
+
+function TransportPill({
+  label, status, detail,
+}: {
+  label: string;
+  status: 'ok' | 'warn' | 'error' | 'idle' | 'connecting';
+  detail?: string;
+}) {
+  const cfg = {
+    ok:         { dot: 'bg-green-500',  ring: 'border-green-200 bg-green-50',   text: 'text-green-700',  pulse: true },
+    warn:       { dot: 'bg-amber-400',  ring: 'border-amber-200 bg-amber-50',   text: 'text-amber-700',  pulse: false },
+    error:      { dot: 'bg-red-500',    ring: 'border-red-200 bg-red-50',       text: 'text-red-700',    pulse: false },
+    idle:       { dot: 'bg-slate-300',  ring: 'border-slate-200 bg-slate-50',   text: 'text-slate-400',  pulse: false },
+    connecting: { dot: 'bg-amber-400',  ring: 'border-amber-200 bg-amber-50',   text: 'text-amber-700',  pulse: true  },
+  }[status];
+
+  return (
+    <span
+      title={detail}
+      className={`flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold ${cfg.ring} ${cfg.text}`}
+    >
+      <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot} ${cfg.pulse ? 'animate-pulse' : ''}`} />
+      {label}
+    </span>
+  );
+}
+
+export default function SyncStatusBadge({ compact = false }: { compact?: boolean }) {
+  const [supaStatus, setSupaStatus] = useState<SyncStatus>('connecting');
+  const [lastSync,   setLastSync]   = useState(0);
+  const [wsStatus,   setWsStatus]   = useState<'ok'|'warn'|'error'|'idle'>('idle');
+  const [httpStatus, setHttpStatus] = useState<'ok'|'warn'|'error'|'idle'>('idle');
 
   useEffect(() => {
     initSyncChannel();
 
-    const unsubStatus = onStatusChange((s) => {
-      setStatus(s);
-      setDiag(getDiagnostics());
+    const unsubSupaStatus = onStatusChange(setSupaStatus);
+
+    // Refresh transport pills whenever sync log changes
+    const unsubLog = onSyncLogChange(() => {
+      setWsStatus(deriveTransportStatus('WS-RELAY'));
+      setHttpStatus(deriveTransportStatus('HTTP-RELAY'));
     });
 
-    // Refresh diagnostics every second
-    const tick = setInterval(() => setDiag(getDiagnostics()), 1000);
+    // Last-sync ticker
+    const tick = setInterval(() => {
+      const t = getLastSyncAt();
+      setLastSync(t ? Math.floor((Date.now() - t) / 1000) : -1);
+    }, 1000);
 
-    // Listen for sync events to flash diagnostics
-    const onSyncEvt = () => setDiag(getDiagnostics());
-    window.addEventListener('domrs:sync-status',   onSyncEvt);
-    window.addEventListener('domrs:remote-update', onSyncEvt);
+    const onRemote = () => setLastSync(0);
+    window.addEventListener('domrs:remote-update', onRemote);
 
     return () => {
-      unsubStatus();
+      unsubSupaStatus();
+      unsubLog();
       clearInterval(tick);
-      window.removeEventListener('domrs:sync-status',   onSyncEvt);
-      window.removeEventListener('domrs:remote-update', onSyncEvt);
+      window.removeEventListener('domrs:remote-update', onRemote);
     };
   }, []);
 
-  const cfg = {
-    connected:  { dot: 'bg-green-500',  ring: 'border-green-200 bg-green-50',  text: 'text-green-700',  label: 'Live Sync',   pulse: true  },
-    connecting: { dot: 'bg-amber-400',  ring: 'border-amber-200 bg-amber-50',  text: 'text-amber-700',  label: 'Connecting…', pulse: true  },
-    error:      { dot: 'bg-red-500',    ring: 'border-red-200 bg-red-50',      text: 'text-red-700',    label: 'Retrying…',   pulse: true  },
-    disabled:   { dot: 'bg-slate-400',  ring: 'border-slate-200 bg-slate-50',  text: 'text-slate-500',  label: 'Offline',     pulse: false },
-  }[status];
+  const supaStatusMapped = (
+    supaStatus === 'connected' ? 'ok' :
+    supaStatus === 'connecting' ? 'connecting' :
+    supaStatus === 'error' ? 'error' : 'idle'
+  ) as 'ok' | 'warn' | 'error' | 'idle' | 'connecting';
 
-  const secsAgo = diag.lastSyncAt ? Math.floor((Date.now() - diag.lastSyncAt) / 1000) : -1;
+  const syncLabel = supaStatus === 'connected' && lastSync >= 0
+    ? lastSync === 0 ? '← just now' : lastSync < 60 ? `← ${lastSync}s ago` : ''
+    : '';
 
-  return (
-    <div className="relative">
-      {/* ── Compact badge — click for debug panel ── */}
-      <button
-        onClick={() => setExpanded(e => !e)}
-        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold transition-all ${cfg.ring} ${cfg.text}`}
-        title="Click for sync diagnostics"
+  if (compact) {
+    // Compact: single combined indicator for header bars
+    const allOk  = wsStatus === 'ok' || httpStatus === 'ok' || supaStatus === 'connected';
+    const anyErr = wsStatus === 'error' && httpStatus === 'error' && supaStatus === 'error';
+    const statusLabel = anyErr ? 'Sync Error' : allOk ? 'Live Sync' : 'Connecting…';
+    const dotCls      = anyErr ? 'bg-red-500' : allOk ? 'bg-green-500' : 'bg-amber-400 animate-pulse';
+    const ringCls     = anyErr ? 'border-red-200 bg-red-50 text-red-700' : allOk ? 'border-green-200 bg-green-50 text-green-700' : 'border-amber-200 bg-amber-50 text-amber-700';
+
+    return (
+      <div
+        title={`WS: ${wsStatus} | HTTP: ${httpStatus} | Supabase: ${supaStatus}`}
+        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold ${ringCls}`}
       >
-        <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot} ${cfg.pulse ? 'animate-pulse' : ''}`} />
-        {cfg.label}
-        {status === 'connected' && secsAgo >= 0 && secsAgo < 60 && (
-          <span className="opacity-60 font-normal">
-            {secsAgo < 2 ? '← just now' : `← ${secsAgo}s ago`}
-          </span>
-        )}
-        {diag.retryCount > 0 && status !== 'connected' && (
-          <span className="opacity-60 font-normal">×{diag.retryCount}</span>
-        )}
-      </button>
+        <span className={`w-1.5 h-1.5 rounded-full ${dotCls}`} />
+        {statusLabel}
+        {syncLabel && <span className="opacity-60 font-normal">{syncLabel}</span>}
+      </div>
+    );
+  }
 
-      {/* ── Expanded debug panel ── */}
-      {expanded && (
-        <div className="absolute right-0 top-8 z-[500] w-72 bg-slate-900 text-slate-100 rounded-2xl shadow-2xl p-4 text-xs font-mono border border-slate-700">
-          <div className="flex items-center justify-between mb-3">
-            <span className="font-bold text-slate-300 font-sans">Sync Diagnostics</span>
-            <button onClick={() => setExpanded(false)} className="text-slate-500 hover:text-white">✕</button>
-          </div>
-
-          <div className="space-y-1.5">
-            <Row label="Status"    value={`${diag.status} (${diag.rawStatus})`}
-              color={diag.status === 'connected' ? 'text-green-400' : diag.status === 'error' ? 'text-red-400' : 'text-amber-400'} />
-            <Row label="Channel"   value={diag.channel} />
-            <Row label="Retries"   value={String(diag.retryCount)}
-              color={diag.retryCount > 2 ? 'text-red-400' : 'text-slate-300'} />
-            <Row label="Last err"  value={diag.lastError || 'none'}
-              color={diag.lastError ? 'text-red-400' : 'text-slate-500'} />
-            <Row label="Last sync" value={secsAgo >= 0 ? `${secsAgo}s ago` : 'never'} />
-            <Row label="Supabase"  value={diag.supabaseUrl} />
-            <Row label="Build"     value={diag.buildTs} />
-          </div>
-
-          <div className="mt-3 pt-3 border-t border-slate-700 text-slate-400 font-sans">
-            {diag.status === 'connected'
-              ? '✅ Real-time sync active. Reports on other devices will sync within 100ms.'
-              : diag.retryCount > 3
-              ? `⚠️ ${diag.retryCount} retries. Error: ${diag.lastError}`
-              : '⏳ Connecting to Supabase Realtime…'}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function Row({ label, value, color = 'text-slate-300' }: { label: string; value: string; color?: string }) {
+  // Expanded: three pills side-by-side
   return (
-    <div className="flex justify-between gap-2">
-      <span className="text-slate-500 shrink-0">{label}</span>
-      <span className={`${color} truncate text-right`}>{value}</span>
+    <div className="flex items-center gap-1.5 flex-wrap">
+      <TransportPill
+        label="WS"
+        status={wsStatus}
+        detail="WebSocket relay — cross-device real-time sync"
+      />
+      <TransportPill
+        label="HTTP"
+        status={httpStatus}
+        detail="HTTP polling relay — 1.5s interval cross-device sync"
+      />
+      <TransportPill
+        label="Supabase"
+        status={supaStatusMapped}
+        detail={`Supabase Realtime broadcast channel — status: ${supaStatus}`}
+      />
+      {syncLabel && (
+        <span className="text-[10px] text-slate-400 font-normal">{syncLabel}</span>
+      )}
     </div>
   );
 }

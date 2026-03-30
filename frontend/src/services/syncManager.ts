@@ -9,6 +9,7 @@
 
 import { supabase } from '@/services/supabaseClient';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { syncLog } from '@/services/syncLogger';
 
 export type SyncStatus = 'connecting' | 'connected' | 'error' | 'disabled';
 
@@ -66,6 +67,8 @@ export function initSyncChannel() {
       if (!payload) return;
       _lastSyncAt = Date.now();
       _listeners.forEach(fn => fn(payload as Record<string, unknown>));
+      syncLog.success('SUPABASE-RT', 'Broadcast received from remote peer',
+        `reports=${(payload as any).reports?.length ?? '?'} alerts=${(payload as any).alerts?.length ?? '?'}`);
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('domrs:remote-update', { detail: payload }));
       }
@@ -78,11 +81,13 @@ export function initSyncChannel() {
 
       if (status === 'SUBSCRIBED') {
         _lastError = '';
+        syncLog.success('SUPABASE-RT', `Channel subscribed: ${CHANNEL_NAME}`);
         setStatus('connected');
 
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
         _retryCount++;
         _lastError = `${status} (attempt ${_retryCount})`;
+        syncLog.error('SUPABASE-RT', `Channel ${status} — retrying in 5s`, CHANNEL_NAME);
         setStatus('error');
 
         // Mark as intentional so the CLOSED callback doesn't overwrite to 'disabled'
@@ -94,6 +99,7 @@ export function initSyncChannel() {
         setTimeout(() => { initSyncChannel(); }, delay);
 
       } else if (status === 'CLOSED') {
+        syncLog.warn('SUPABASE-RT', 'Channel closed', CHANNEL_NAME);
         if (_intentionalClose) {
           _intentionalClose = false; // we caused this — don't change status
         } else {
@@ -109,6 +115,7 @@ export function initSyncChannel() {
 export function broadcastState(payload: Record<string, unknown>) {
   if (!_channel || _status !== 'connected') return;
   _channel.send({ type: 'broadcast', event: EVENT_NAME, payload });
+  syncLog.debug('SUPABASE-RT', 'Broadcast sent to channel', CHANNEL_NAME);
 }
 
 // ── Listeners ─────────────────────────────────────────────────────────────────

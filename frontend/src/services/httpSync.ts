@@ -16,6 +16,7 @@
  */
 
 import { MOCK_STATE } from '@/services/mockData';
+import { syncLog } from '@/services/syncLogger';
 
 const API = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001')
   .replace(/\/$/, '');
@@ -56,6 +57,7 @@ export function pushStateToBackend(role = 'unknown', user = 'User'): void {
   if (typeof window === 'undefined') return;
   const deviceId = getDeviceId();
   const ts = Date.now();
+  syncLog.debug('HTTP-RELAY', `Pushing state to backend`, `role=${role} device=${deviceId}`);
   // Don't await — fire and forget
   fetch(`${API}/sync/state`, {
     method: 'POST',
@@ -72,9 +74,12 @@ export function pushStateToBackend(role = 'unknown', user = 'User'): void {
   })
     .then(r => r.json())
     .then((data: { devices?: LiveDevice[] }) => {
+      syncLog.success('HTTP-RELAY', `State pushed OK`, `devices online: ${data.devices?.length ?? '?'}`);
       if (data.devices) _deviceListeners.forEach(fn => fn(data.devices!));
     })
-    .catch(() => { /* backend offline — silent */ });
+    .catch((err) => {
+      syncLog.warn('HTTP-RELAY', 'Push failed — backend unreachable', String(err?.message ?? err));
+    });
 }
 
 // ── Poll backend for updates + announce presence ──────────────────────────────
@@ -92,7 +97,10 @@ export async function pollBackend(
       `&r=${encodeURIComponent(role)}` +
       `&u=${encodeURIComponent(user)}`
     );
-    if (!res.ok) return;
+    if (!res.ok) {
+      syncLog.warn('HTTP-RELAY', `Poll returned HTTP ${res.status}`, `${API}/sync/state`);
+      return;
+    }
     const data = await res.json() as { state: Record<string, unknown> | null; ts: number; devices: LiveDevice[] };
 
     // Update live device list
@@ -102,12 +110,19 @@ export async function pollBackend(
     if (data.ts > _lastAppliedTs && data.state) {
       _lastAppliedTs = data.ts;
       const s = data.state;
-      if (Array.isArray(s.reports))    MOCK_STATE.reports    = s.reports    as typeof MOCK_STATE.reports;
-      if (Array.isArray(s.alerts))     MOCK_STATE.alerts     = s.alerts     as typeof MOCK_STATE.alerts;
-      if (Array.isArray(s.broadcasts)) MOCK_STATE.broadcasts = s.broadcasts as typeof MOCK_STATE.broadcasts;
-      if (Array.isArray(s.auditLogs))  MOCK_STATE.auditLogs  = s.auditLogs  as typeof MOCK_STATE.auditLogs;
+      const merged: string[] = [];
+      if (Array.isArray(s.reports))    { MOCK_STATE.reports    = s.reports    as typeof MOCK_STATE.reports;    merged.push(`reports=${(s.reports as unknown[]).length}`); }
+      if (Array.isArray(s.alerts))     { MOCK_STATE.alerts     = s.alerts     as typeof MOCK_STATE.alerts;     merged.push(`alerts=${(s.alerts as unknown[]).length}`); }
+      if (Array.isArray(s.broadcasts)) { MOCK_STATE.broadcasts = s.broadcasts as typeof MOCK_STATE.broadcasts; merged.push(`broadcasts=${(s.broadcasts as unknown[]).length}`); }
+      if (Array.isArray(s.auditLogs))  { MOCK_STATE.auditLogs  = s.auditLogs  as typeof MOCK_STATE.auditLogs; }
+      syncLog.info('HTTP-RELAY', `Remote state applied (ts=${data.ts})`, merged.join(' '));
       window.dispatchEvent(new CustomEvent('domrs:update', { detail: { type: 'http-poll' } }));
       onUpdate();
+    } else {
+      syncLog.debug('HTTP-RELAY', `Poll OK — no new state (ts=${data.ts})`,
+        `${data.devices?.length ?? 0} device(s) online`);
     }
-  } catch { /* backend not reachable — skip */ }
+  } catch (err) {
+    syncLog.error('HTTP-RELAY', 'Poll failed — backend not reachable', String((err as Error).message ?? err));
+  }
 }
