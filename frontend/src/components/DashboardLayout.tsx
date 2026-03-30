@@ -107,9 +107,16 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         <aside className="flex flex-col h-screen bg-white border-r border-slate-100 w-64 overflow-hidden">
             {/* Logo + dark toggle */}
             <div className="flex items-center gap-3 px-6 py-5 border-b border-slate-100">
-                <div className="w-9 h-9 bg-[#1e52f1] rounded-xl flex items-center justify-center shadow-md shadow-[#1e52f1]/20">
-                    <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 2L2 22h20L12 2zm0 4.5l6.5 13h-13L12 6.5z" />
+                <div className="w-9 h-9 bg-[#1e52f1] rounded-xl flex items-center justify-center shadow-md shadow-[#1e52f1]/20 flex-shrink-0">
+                    {/* ECG / heart-monitor line */}
+                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <polyline
+                        points="1,12 5,12 6.5,7 8,17 9.5,12 13,12 14.5,5 16,19 17.5,12 23,12"
+                        stroke="white"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
                     </svg>
                 </div>
                 <span className="font-bold text-lg tracking-tight text-slate-900 flex-1">DOMRS</span>
@@ -182,7 +189,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
     );
 
     return (
-        <div className="flex h-screen overflow-hidden bg-slate-50 font-sans">
+        <div className="flex h-screen overflow-hidden bg-slate-50 font-sans max-w-[100vw]">
             {/* Desktop Sidebar — fixed, never scrolls */}
             <div className="hidden md:flex flex-col flex-shrink-0">
                 <Sidebar />
@@ -214,7 +221,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                 </header>
 
                 {/* Page Content — scrolls */}
-                <main className="flex-1 p-6 md:p-8 overflow-y-auto">
+                <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto overflow-x-hidden">
                     {children}
                 </main>
             </div>

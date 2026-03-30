@@ -288,14 +288,14 @@ export default function PHODashboard() {
       </div>
 
       {/* ── Tabs ── */}
-      <div className="flex gap-1 p-1 bg-slate-100 rounded-2xl w-fit mb-6">
+      <div className="flex gap-1 p-1 bg-slate-100 rounded-2xl w-fit mb-6 overflow-x-auto">
         {([
-          ['triage',     '🚨 Alert Triage'],
-          ['broadcasts', '📢 Broadcasts'],
-          ['map',        '🗺️ Live Map'],
+          ['triage',     'Alert Triage'],
+          ['broadcasts', 'Broadcasts'],
+          ['map',        'Live Map'],
         ] as const).map(([tab, label]) => (
           <button key={tab} onClick={() => setActiveTab(tab)}
-            className={`px-5 py-2 rounded-xl text-sm font-semibold transition-all ${activeTab === tab ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}>
+            className={`px-5 py-2 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${activeTab === tab ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}>
             {label}
           </button>
         ))}
@@ -307,9 +307,9 @@ export default function PHODashboard() {
           {/* AI Analysis */}
           <AiAnalysisPanel onBroadcast={() => setShowBc(true)} />
 
-          <div className="flex gap-5 min-h-[580px]">
-            {/* LEFT: Alert list */}
-            <div className="w-72 flex-shrink-0 flex flex-col gap-3 overflow-y-auto pr-1" style={{ maxHeight: '70vh' }}>
+          <div className="flex flex-col md:flex-row gap-5">
+            {/* Alert list — full-width on mobile, fixed sidebar on md+ */}
+            <div className="w-full md:w-72 md:flex-shrink-0 flex flex-col gap-3 md:overflow-y-auto md:pr-1" style={{ maxHeight: 'min(70vh, 600px)' }}>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest shrink-0">Inbox · CBS desc.</p>
               {alerts.length === 0 && (
                 <div className="flex items-center justify-center py-16 text-slate-400 text-sm">No alerts yet</div>
@@ -362,7 +362,7 @@ export default function PHODashboard() {
               })}
             </div>
 
-            {/* RIGHT: Evidence Board */}
+            {/* Evidence Board — below alert list on mobile, right panel on md+ */}
             <div className="flex-1 min-w-0 overflow-y-auto space-y-4">
               {selected ? (
                 <>
@@ -378,7 +378,7 @@ export default function PHODashboard() {
                         <p className={`text-xs font-bold ${cbsColor(selected.cbs_score).text} opacity-70`}>CBS Score</p>
                       </div>
                     </div>
-                    <div className="grid grid-cols-3 gap-3 mt-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5">
                       <div className="bg-slate-50 rounded-xl p-3 text-center"><p className="text-2xl font-black text-slate-900">{selected.sentinel_reports?.patient_count ?? '?'}</p><p className="text-xs text-slate-400 mt-0.5">Patients</p></div>
                       <div className="bg-slate-50 rounded-xl p-3 text-center"><p className="text-2xl font-black text-slate-900">{selected.severity_index}/10</p><p className="text-xs text-slate-400 mt-0.5">Severity</p></div>
                       <div className="bg-slate-50 rounded-xl p-3 text-center">
@@ -544,7 +544,7 @@ export default function PHODashboard() {
           </div>
           <PHOLiveMap height={520} alertsOnly={false} />
           {/* Snapshot stats */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-center">
               <p className="text-2xl font-black text-red-700">{alerts.filter(a => a.status === 'confirmed').length}</p>
               <p className="text-xs text-red-600 mt-0.5 font-semibold">Confirmed</p>

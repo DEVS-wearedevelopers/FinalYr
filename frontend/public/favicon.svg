@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Blue square background -->
+  <rect width="32" height="32" rx="8" fill="#1e52f1"/>
+  <!-- ECG / heart monitor line: flat → spike up → dip down → flat -->
+  <polyline
+    points="2,16 8,16 10,10 12,22 14,16 18,16 20,8 22,24 24,16 30,16"
+    stroke="white"
+    stroke-width="2.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
+</svg>
