@@ -208,12 +208,18 @@ function saveToStorage() {
 }
 
 /** Read back from localStorage and merge into MOCK_STATE (called by other tabs) */
+let _lastStorageTs = 0; // tracks the last timestamp we loaded from storage
+
 export function loadFromStorage(): boolean {
   if (typeof window === 'undefined') return false;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return false;
     const parsed = JSON.parse(raw);
+    // Only update if the stored data is newer than what we last loaded
+    const ts: number = parsed.ts ?? 0;
+    if (ts <= _lastStorageTs) return false;
+    _lastStorageTs = ts;
     if (parsed.reports)    MOCK_STATE.reports    = parsed.reports;
     if (parsed.alerts)     MOCK_STATE.alerts     = parsed.alerts;
     if (parsed.broadcasts) MOCK_STATE.broadcasts = parsed.broadcasts;

@@ -29,7 +29,7 @@ export function useMockSync(load: () => void) {
     // Same-tab: fired directly by emitUpdate()
     window.addEventListener('domrs:update', handleUpdate);
 
-    // Cross-tab: fired when another tab writes to localStorage
+    // Cross-tab (same browser): fired when another tab writes to localStorage
     const onStorage = (e: StorageEvent) => {
       if (e.key === 'domrs_state_v2') {
         loadFromStorage(); // merge localStorage → MOCK_STATE
@@ -38,9 +38,17 @@ export function useMockSync(load: () => void) {
     };
     window.addEventListener('storage', onStorage);
 
+    // Cross-device fallback: poll every 2 s so that changes made on a
+    // different browser / device (phone ↔ PC) are never missed.
+    const poll = setInterval(() => {
+      const changed = loadFromStorage(); // returns true when data changed
+      if (changed) loadRef.current();
+    }, 2000);
+
     return () => {
       window.removeEventListener('domrs:update', handleUpdate);
       window.removeEventListener('storage', onStorage);
+      clearInterval(poll);
     };
   }, []); // intentionally empty — loadRef handles freshness
 }

@@ -91,7 +91,7 @@ const CivilianMap = forwardRef<CivilianMapHandle, Props>(function CivilianMap(
     },
   }), [addMarker]);
 
-  // ── Global sync: domrs:update (same tab) + storage event (other tabs) ───────
+  // ── Global sync: domrs:update (same tab) + storage event (other tabs) + poll (cross-device) ─
   useEffect(() => {
     const syncPins = () => {
       if (!LRef.current || !mapInstanceRef.current) return;
@@ -105,11 +105,20 @@ const CivilianMap = forwardRef<CivilianMapHandle, Props>(function CivilianMap(
         import('@/services/mockData').then(m => { m.loadFromStorage(); syncPins(); });
       }
     };
+    // Cross-device fallback: poll every 2 s
+    const poll = setInterval(() => {
+      import('@/services/mockData').then(m => {
+        const changed = m.loadFromStorage();
+        if (changed) syncPins();
+      });
+    }, 2000);
+
     window.addEventListener('domrs:update', syncPins);
     window.addEventListener('storage', onStorage);
     return () => {
       window.removeEventListener('domrs:update', syncPins);
       window.removeEventListener('storage', onStorage);
+      clearInterval(poll);
     };
   }, [addMarker]);
 
