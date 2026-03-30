@@ -2,13 +2,12 @@
 /**
  * SyncStatusBadge — multi-transport sync indicator.
  *
- * Shows the real health of every sync layer:
- *  • WS-RELAY  (WebSocket to local backend)
- *  • HTTP-RELAY (polling render.com / local backend)
- *  • SUPABASE-RT (Supabase Realtime broadcast channel)
+ * Three transport pills: WS-RELAY | HTTP-RELAY | SUPABASE-RT
+ * Status is derived from actual syncLogger events.
  *
- * Replaces the old single-channel "Local only" badge that only reflected
- * the Supabase channel state and hid WS/HTTP activity entirely.
+ * IMPORTANT: Supabase 'disabled' (gave up after 3 retries on paused project)
+ * is treated as NEUTRAL, not an error. WS + HTTP handle local sync.
+ * The overall badge only shows red if BOTH WS and HTTP have errored.
  */
 import React, { useEffect, useState } from 'react';
 import {
@@ -31,7 +30,7 @@ function TransportPill({
   label, status, detail,
 }: {
   label: string;
-  status: 'ok' | 'warn' | 'error' | 'idle' | 'connecting';
+  status: 'ok' | 'warn' | 'error' | 'idle' | 'connecting' | 'disabled';
   detail?: string;
 }) {
   const cfg = {
@@ -40,6 +39,7 @@ function TransportPill({
     error:      { dot: 'bg-red-500',    ring: 'border-red-200 bg-red-50',       text: 'text-red-700',    pulse: false },
     idle:       { dot: 'bg-slate-300',  ring: 'border-slate-200 bg-slate-50',   text: 'text-slate-400',  pulse: false },
     connecting: { dot: 'bg-amber-400',  ring: 'border-amber-200 bg-amber-50',   text: 'text-amber-700',  pulse: true  },
+    disabled:   { dot: 'bg-slate-300',  ring: 'border-slate-200 bg-slate-50',   text: 'text-slate-400',  pulse: false },
   }[status];
 
   return (
@@ -88,22 +88,29 @@ export default function SyncStatusBadge({ compact = false }: { compact?: boolean
   }, []);
 
   const supaStatusMapped = (
-    supaStatus === 'connected' ? 'ok' :
+    supaStatus === 'connected'  ? 'ok' :
     supaStatus === 'connecting' ? 'connecting' :
-    supaStatus === 'error' ? 'error' : 'idle'
-  ) as 'ok' | 'warn' | 'error' | 'idle' | 'connecting';
+    supaStatus === 'disabled'   ? 'disabled' :  // gave up — show neutral, not red
+    supaStatus === 'error'      ? 'warn'     :  // still retrying — amber, not red
+    'idle'
+  ) as 'ok' | 'warn' | 'error' | 'idle' | 'connecting' | 'disabled';
 
   const syncLabel = supaStatus === 'connected' && lastSync >= 0
     ? lastSync === 0 ? '← just now' : lastSync < 60 ? `← ${lastSync}s ago` : ''
     : '';
 
   if (compact) {
-    // Compact: single combined indicator for header bars
-    const allOk  = wsStatus === 'ok' || httpStatus === 'ok' || supaStatus === 'connected';
-    const anyErr = wsStatus === 'error' && httpStatus === 'error' && supaStatus === 'error';
-    const statusLabel = anyErr ? 'Sync Error' : allOk ? 'Live Sync' : 'Connecting…';
-    const dotCls      = anyErr ? 'bg-red-500' : allOk ? 'bg-green-500' : 'bg-amber-400 animate-pulse';
-    const ringCls     = anyErr ? 'border-red-200 bg-red-50 text-red-700' : allOk ? 'border-green-200 bg-green-50 text-green-700' : 'border-amber-200 bg-amber-50 text-amber-700';
+    // Overall health: green if WS or HTTP is ok; only red if both WS+HTTP have errored.
+    // Supabase being disabled (paused free tier) is NOT counted as a failure.
+    const localSyncOk  = wsStatus === 'ok' || httpStatus === 'ok';
+    const localSyncErr = wsStatus === 'error' && httpStatus === 'error';
+    const statusLabel  = localSyncErr ? 'Sync Error' : localSyncOk ? 'Live Sync' : 'Connecting…';
+    const dotCls       = localSyncErr ? 'bg-red-500' : localSyncOk ? 'bg-green-500' : 'bg-amber-400 animate-pulse';
+    const ringCls      = localSyncErr
+      ? 'border-red-200 bg-red-50 text-red-700'
+      : localSyncOk
+      ? 'border-green-200 bg-green-50 text-green-700'
+      : 'border-amber-200 bg-amber-50 text-amber-700';
 
     return (
       <div

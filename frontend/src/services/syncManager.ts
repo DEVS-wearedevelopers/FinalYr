@@ -15,6 +15,7 @@ export type SyncStatus = 'connecting' | 'connected' | 'error' | 'disabled';
 
 const CHANNEL_NAME = 'domrs-live-sync';
 const EVENT_NAME   = 'state-update';
+const MAX_RETRIES  = 3;   // after this many CHANNEL_ERRORs, stop retrying Supabase
 
 // ── Singleton state ───────────────────────────────────────────────────────────
 let _channel:         RealtimeChannel | null = null;
@@ -39,7 +40,7 @@ export const getDiagnostics = () => ({
   supabaseUrl: (process.env.NEXT_PUBLIC_SUPABASE_URL
     ? `env:${process.env.NEXT_PUBLIC_SUPABASE_URL.slice(-12)}`
     : 'hardcoded-fallback'),
-  buildTs: '2026-03-30T08:20',
+  buildTs: '2026-03-30T08:33',
 });
 
 function setStatus(s: SyncStatus) {
@@ -87,7 +88,20 @@ export function initSyncChannel() {
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
         _retryCount++;
         _lastError = `${status} (attempt ${_retryCount})`;
-        syncLog.error('SUPABASE-RT', `Channel ${status} — retrying in 5s`, CHANNEL_NAME);
+
+        if (_retryCount >= MAX_RETRIES) {
+          // Give up — Supabase is unavailable (project paused or no network).
+          // WS + HTTP relays are handling sync; this is not a critical failure.
+          syncLog.warn('SUPABASE-RT',
+            `Channel unavailable after ${MAX_RETRIES} attempts — Supabase disabled`,
+            'WS-RELAY and HTTP-RELAY are still active. Cross-device sync is unaffected.');
+          _intentionalClose = true;
+          if (_channel) { supabase.removeChannel(_channel); _channel = null; }
+          setStatus('disabled');
+          return;
+        }
+
+        syncLog.warn('SUPABASE-RT', `Channel ${status} (attempt ${_retryCount}/${MAX_RETRIES}) — retrying`);
         setStatus('error');
 
         // Mark as intentional so the CLOSED callback doesn't overwrite to 'disabled'
