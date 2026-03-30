@@ -31,7 +31,7 @@ export function useMockSync(load: () => void) {
 
     // Cross-tab: fired when another tab writes to localStorage
     const onStorage = (e: StorageEvent) => {
-      if (e.key === 'domrs_state_v1') {
+      if (e.key === 'domrs_state_v2') {
         loadFromStorage(); // merge localStorage → MOCK_STATE
         loadRef.current(); // re-read from updated MOCK_STATE
       }
