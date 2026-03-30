@@ -53,7 +53,7 @@ function TransportPill({
   );
 }
 
-export default function SyncStatusBadge({ compact = false }: { compact?: boolean }) {
+export default function SyncStatusBadge({ compact = true }: { compact?: boolean }) {
   const [supaStatus, setSupaStatus] = useState<SyncStatus>('connecting');
   const [lastSync,   setLastSync]   = useState(0);
   const [wsStatus,   setWsStatus]   = useState<'ok'|'warn'|'error'|'idle'>('idle');

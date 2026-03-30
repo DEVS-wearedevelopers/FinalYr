@@ -393,7 +393,7 @@ export default function EOCDashboard() {
               </div>
               <div className="flex items-center gap-2">
                 {/* Transport status pills */}
-                <SyncStatusBadge />
+                <SyncStatusBadge compact={false} />
                 <div className="h-4 w-px bg-slate-200" />
                 <div className="flex gap-1 bg-slate-100 rounded-xl p-1">
                   {(['all', 'ERROR', 'WARN', 'SUCCESS', 'INFO', 'DEBUG'] as const).map(f => (
