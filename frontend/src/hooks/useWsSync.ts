@@ -11,17 +11,15 @@
 import { useEffect, useRef } from 'react';
 import { MOCK_STATE } from '@/services/mockData';
 
-// Derive WS URL from the API base URL (swap http→ws, port 3001→3002)
-// Falls back gracefully if the server isn't running.
+// WS is on the SAME port as the HTTP API — just swap the scheme.
+// Works for: localhost:3001, 192.168.x.x:3001, merms-backend.onrender.com
 function getWsUrl(): string {
   if (typeof window === 'undefined') return '';
-  const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
-  // Replace http(s) with ws(s) and swap port 3001 → 3002
+  const apiBase = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001')
+    .replace(/\/+$/, ''); // strip trailing slash
   return apiBase
-    .replace(/^https/, 'wss')
-    .replace(/^http/, 'ws')
-    .replace(/:3001$/, ':3002')
-    .replace(/\/+$/, '');
+    .replace(/^https:\/\//, 'wss://')
+    .replace(/^http:\/\//, 'ws://');
 }
 
 export function useWsSync(onUpdate?: () => void) {

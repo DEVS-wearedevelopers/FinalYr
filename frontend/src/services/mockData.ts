@@ -243,13 +243,12 @@ function getSyncWs(): WebSocket | null {
   if (typeof window === 'undefined') return null;
   if (_syncWs && _syncWs.readyState === WebSocket.OPEN) return _syncWs;
 
-  // Derive WS URL same way as useWsSync hook
-  const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
-  const wsUrl = apiBase
-    .replace(/^https/, 'wss')
-    .replace(/^http/, 'ws')
-    .replace(/:3001$/, ':3002')
+  // WS lives on the same port as the HTTP API — just swap the scheme
+  const apiBase = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001')
     .replace(/\/+$/, '');
+  const wsUrl = apiBase
+    .replace(/^https:\/\//, 'wss://')
+    .replace(/^http:\/\//, 'ws://');
 
   try {
     const ws = new WebSocket(wsUrl);
