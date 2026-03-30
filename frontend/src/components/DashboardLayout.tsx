@@ -221,7 +221,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                 </header>
 
                 {/* Page Content — scrolls */}
-                <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto overflow-x-hidden">
+                <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto overflow-x-clip">
                     {children}
                 </main>
             </div>

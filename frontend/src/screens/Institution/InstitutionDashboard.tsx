@@ -247,7 +247,7 @@ export default function InstitutionDashboard() {
 
       {/* ── LOCKDOWN Banner ── */}
       {activeLockdown && (
-        <div className="-mx-8 -mt-8 px-8 py-5 mb-6 bg-purple-700 border-b border-purple-600 flex items-start gap-4">
+        <div className="-mx-4 sm:-mx-6 md:-mx-8 -mt-4 sm:-mt-6 md:-mt-8 px-4 sm:px-6 md:px-8 py-5 mb-6 bg-purple-700 border-b border-purple-600 flex items-start gap-4">
           <span className="text-3xl shrink-0 animate-pulse">🔒</span>
           <div className="flex-1">
             <p className="text-white font-black text-base">ZONE LOCKDOWN ACTIVE</p>
@@ -259,7 +259,7 @@ export default function InstitutionDashboard() {
 
       {/* ── Broadcast Banner ── */}
       {!activeLockdown && broadcasts.length > 0 && (
-        <div className={`-mx-8 -mt-8 px-8 py-4 mb-6 border-b ${
+        <div className={`-mx-4 sm:-mx-6 md:-mx-8 -mt-4 sm:-mt-6 md:-mt-8 px-4 sm:px-6 md:px-8 py-4 mb-6 border-b ${
           broadcasts[0].type === 'hemorrhagic' ? 'bg-red-600' :
           broadcasts[0].type === 'enteric'     ? 'bg-amber-500' : 'bg-blue-600'
         }`}>
@@ -267,7 +267,7 @@ export default function InstitutionDashboard() {
             <span className="text-white text-xl shrink-0">
               {broadcasts[0].type === 'hemorrhagic' ? '🚨' : broadcasts[0].type === 'enteric' ? '⚠️' : '📢'}
             </span>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <p className="text-white font-bold text-sm">{broadcasts[0].title}</p>
               <p className="text-white/80 text-xs mt-0.5 leading-relaxed">{broadcasts[0].message}</p>
             </div>
@@ -383,21 +383,21 @@ export default function InstitutionDashboard() {
           {reports.map(row => (
             <React.Fragment key={row.id}>
               <div onClick={() => setExpanded(expanded === row.id ? null : row.id)}
-                className="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50/60 transition-colors cursor-pointer">
-                <div className="w-14 shrink-0"><p className="text-xs font-semibold text-slate-700">{rel(row.created_at)}</p></div>
+                className="flex items-center gap-3 px-4 sm:px-5 py-3.5 hover:bg-slate-50/60 transition-colors cursor-pointer min-w-0">
+                <div className="w-12 shrink-0"><p className="text-xs font-semibold text-slate-700">{rel(row.created_at)}</p></div>
                 <div className="flex-1 min-w-0"><p className="text-xs font-semibold text-slate-700 truncate">{row.symptom_matrix.join(' · ')}</p></div>
                 {row.cbs_score !== undefined && (
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full shrink-0 ${
+                  <span className={`hidden sm:inline text-xs font-bold px-2 py-0.5 rounded-full shrink-0 ${
                     row.cbs_score >= 0.8 ? 'bg-red-50 text-red-700' :
                     row.cbs_score >= 0.5 ? 'bg-amber-50 text-amber-700' : 'bg-green-50 text-green-700'
                   }`}>CBS {row.cbs_score.toFixed(2)}</span>
                 )}
-                <div className="shrink-0"><PipelineBadge status={row.status} /></div>
+                <div className="hidden sm:block shrink-0"><PipelineBadge status={row.status} /></div>
                 <svg className={`w-4 h-4 text-slate-400 shrink-0 transition-transform ${expanded === row.id ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
               </div>
               {expanded === row.id && (
                 <div className="px-5 py-4 bg-slate-50 border-t border-slate-100 space-y-3">
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div className="bg-white rounded-xl p-3 border border-slate-100"><p className="text-xs text-slate-400">Patients</p><p className="font-bold text-slate-900 text-lg">{row.patient_count}</p></div>
                     <div className="bg-white rounded-xl p-3 border border-slate-100"><p className="text-xs text-slate-400">Severity</p><p className="font-bold text-slate-900 text-lg">{row.severity}/10</p></div>
                     <div className="bg-white rounded-xl p-3 border border-slate-100"><p className="text-xs text-slate-400">CBS Score</p><p className="font-bold text-slate-900">{row.cbs_score?.toFixed(2) ?? '—'}</p></div>
