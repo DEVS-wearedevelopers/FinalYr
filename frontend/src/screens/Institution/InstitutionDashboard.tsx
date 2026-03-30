@@ -11,6 +11,7 @@ import {
 import { useMockSync } from '@/hooks/useMockSync';
 import { useWsSync } from '@/hooks/useWsSync';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
+import { useHttpSync } from '@/hooks/useHttpSync';
 import SyncStatusBadge from '@/components/SyncStatusBadge';
 import type { CivilianMapHandle } from '@/screens/Civilian/CivilianMap';
 
@@ -211,9 +212,10 @@ export default function InstitutionDashboard() {
     setBroadcasts(mockGetBroadcasts().filter(b => b.active));
   };
 
-  useMockSync(load);       // same-tab + cross-tab (same browser)
-  useWsSync(load);         // same-network local demo fallback
-  useSupabaseSync(load);   // ✅ cross-device: phone ↔ PC via Vercel
+  useMockSync(load);
+  useWsSync(load);
+  useSupabaseSync(load);
+  useHttpSync(load, 'institution'); // ✅ GUARANTEED: polls render.com every 1.5s
 
   const showToast = (m: string) => { setToast(m); setTimeout(() => setToast(''), 4000); };
 

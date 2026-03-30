@@ -10,6 +10,7 @@ import {
 import { useMockSync } from '@/hooks/useMockSync';
 import { useWsSync } from '@/hooks/useWsSync';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
+import { useHttpSync } from '@/hooks/useHttpSync';
 import SyncStatusBadge from '@/components/SyncStatusBadge';
 import type { CivilianMapHandle } from './CivilianMap';
 
@@ -234,9 +235,10 @@ export default function CivilianDashboard() {
     setBroadcasts(mockGetBroadcasts().filter(b => b.active));
   };
 
-  useMockSync(load);       // same-tab + cross-tab (same browser)
-  useWsSync(load);         // same-network local demo fallback
-  useSupabaseSync(load);   // ✅ cross-device: phone ↔ PC via Vercel
+  useMockSync(load);             // same-tab + cross-tab (same browser)
+  useWsSync(load);               // same-network WebSocket
+  useSupabaseSync(load);         // Supabase Realtime (when env vars on Vercel)
+  useHttpSync(load, 'civilian'); // ✅ GUARANTEED: polls render.com every 1.5s
 
   const hasHighRisk = alerts.some(a => a.cbs_score >= 0.8);
 

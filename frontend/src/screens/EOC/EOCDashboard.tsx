@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { DashboardLayout, useUserFromToken } from '@/components/DashboardLayout';
 import {
   mockGetUsers, mockGetAuditLogs, mockGetBroadcasts, mockGetReports,
@@ -9,6 +9,8 @@ import {
 import { useMockSync } from '@/hooks/useMockSync';
 import { useWsSync } from '@/hooks/useWsSync';
 import { useSupabaseSync } from '@/hooks/useSupabaseSync';
+import { useHttpSync } from '@/hooks/useHttpSync';
+import { onLiveDevicesChange, type LiveDevice } from '@/services/httpSync';
 import SyncStatusBadge from '@/components/SyncStatusBadge';
 
 // ─── NAV ──────────────────────────────────────────────────────────────────────
@@ -191,7 +193,7 @@ function ConfirmDialog({ message, onConfirm, onCancel }: { message: string; onCo
 export default function EOCDashboard() {
   const tokenUser = useUserFromToken();
 
-  const [activeTab, setActiveTab]   = useState<'users' | 'logs' | 'broadcasts' | 'system'>('users');
+  const [activeTab, setActiveTab]   = useState<'users' | 'logs' | 'broadcasts' | 'system' | 'live'>('users');
   const [users, setUsers]           = useState(mockGetUsers());
   const [logs, setLogs]             = useState<AuditLog[]>([]);
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
@@ -199,6 +201,7 @@ export default function EOCDashboard() {
   const [sysFilter, setSysFilter]   = useState<'all' | 'ERROR' | 'WARN' | 'INFO'>('all');
   const [toast, setToast]           = useState('');
   const [confirm, setConfirm]       = useState<null | { message: string; action: () => void }>(null);
+  const [liveDevices, setLiveDevices] = useState<LiveDevice[]>([]);
   const logEndRef                   = useRef<HTMLDivElement>(null);
 
   const load = useCallback(() => {
@@ -208,8 +211,11 @@ export default function EOCDashboard() {
     setSysLogs(buildSystemLogs());
   }, []);
   useMockSync(load);
-  useWsSync(load);         // same-network local demo fallback
-  useSupabaseSync(load);   // ✅ cross-device: phone ↔ PC via Vercel
+  useWsSync(load);
+  useSupabaseSync(load);
+  useHttpSync(load, 'eoc'); // polls render.com, also populates liveDevices
+
+  useEffect(() => onLiveDevicesChange(setLiveDevices), []);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3500); };
 
@@ -305,6 +311,7 @@ export default function EOCDashboard() {
           ['broadcasts', '📢 Broadcasts'],
           ['logs',       '📋 Audit Log'],
           ['system',     '🖥️ System Logs'],
+          ['live',       '📡 Live Devices'],
         ] as const).map(([tab, label]) => (
           <button key={tab} onClick={() => setActiveTab(tab)}
             className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${
@@ -313,6 +320,9 @@ export default function EOCDashboard() {
             {label}
             {tab === 'system' && sysErrors > 0 && (
               <span className="ml-1.5 text-xs bg-red-500 text-white px-1.5 py-0.5 rounded-full">{sysErrors}</span>
+            )}
+            {tab === 'live' && liveDevices.length > 0 && (
+              <span className="ml-1.5 text-xs bg-green-500 text-white px-1.5 py-0.5 rounded-full">{liveDevices.length}</span>
             )}
           </button>
         ))}
@@ -511,6 +521,69 @@ export default function EOCDashboard() {
               )}
               <div ref={logEndRef} />
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── LIVE DEVICES TAB ── */}
+      {activeTab === 'live' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-bold text-slate-800">Live Connected Devices</h2>
+              <p className="text-xs text-slate-400 mt-0.5">Updated every 1.5s via render.com relay</p>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded-xl">
+              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              <span className="text-xs font-bold text-green-700">{liveDevices.length} online</span>
+            </div>
+          </div>
+
+          {liveDevices.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-slate-200 px-5 py-16 text-center">
+              <p className="text-3xl mb-3">📡</p>
+              <p className="text-sm font-semibold text-slate-600">No devices detected yet</p>
+              <p className="text-xs text-slate-400 mt-1">Open any dashboard on another device — it will appear here within 3 seconds</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {liveDevices.map((d) => {
+                const secsAgo = Math.floor((Date.now() - d.lastSeen) / 1000);
+                const roleColors: Record<string, string> = {
+                  civilian:    'bg-green-100 text-green-700 border-green-200',
+                  institution: 'bg-blue-100 text-blue-700 border-blue-200',
+                  pho:         'bg-purple-100 text-purple-700 border-purple-200',
+                  eoc:         'bg-red-100 text-red-700 border-red-200',
+                };
+                const roleColor = roleColors[d.role] ?? 'bg-slate-100 text-slate-600 border-slate-200';
+                return (
+                  <div key={d.id} className="bg-white rounded-2xl border border-slate-200 p-5 flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-2xl shrink-0">
+                      {d.device === 'mobile' ? '📱' : '🖥️'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-bold text-slate-900 truncate">{d.user}</span>
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full border capitalize ${roleColor}`}>{d.role}</span>
+                      </div>
+                      <p className="text-xs text-slate-400">{d.device === 'mobile' ? 'Mobile device' : 'Desktop browser'}</p>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                        <span className="text-xs text-slate-400">
+                          {secsAgo < 3 ? 'Active now' : `Active ${secsAgo}s ago`}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs text-slate-500 leading-relaxed">
+            <p className="font-bold text-slate-600 mb-1">How this works</p>
+            Every dashboard polls <code className="bg-white px-1 py-0.5 rounded border border-slate-200 font-mono">GET /sync/state</code> on the render.com backend every 1.5 seconds and announces its presence.
+            Devices that haven&lsquo;t polled in 30 seconds are removed automatically.
           </div>
         </div>
       )}

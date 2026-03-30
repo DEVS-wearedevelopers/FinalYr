@@ -84,6 +84,54 @@ app.route('/alerts', alertsRouter);
 app.route('/admin', adminRouter);
 app.route('/institutions', institutionsRouter);
 
+// ── Cross-device sync relay ────────────────────────────────────────────────────
+// Simple in-memory relay: any device can push state, all devices poll for updates.
+// Uses NEXT_PUBLIC_API_URL (already on Vercel) — no Supabase env vars needed.
+// Polling every 1.5s also keeps render.com free tier from sleeping during demos.
+
+type DeviceInfo = { role: string; user: string; ua: string; lastSeen: number; };
+const _devices: Record<string, DeviceInfo> = {};
+let _syncState: unknown = null;
+let _syncTs = 0;
+
+function pruneDevices() {
+    const cutoff = Date.now() - 30_000;
+    Object.keys(_devices).forEach(k => { if (_devices[k].lastSeen < cutoff) delete _devices[k]; });
+}
+
+function activeDeviceList() {
+    pruneDevices();
+    return Object.entries(_devices).map(([id, d]) => ({
+        id,
+        role:     d.role,
+        user:     d.user,
+        device:   /mobile|android|iphone|ipad|tablet/i.test(d.ua) ? 'mobile' : 'desktop',
+        lastSeen: d.lastSeen,
+    }));
+}
+
+// GET /sync/state?d=deviceId&r=role&u=userName
+// Returns latest state + active device list. Also registers the caller as a live device.
+app.get('/sync/state', (c) => {
+    const deviceId = c.req.query('d') ?? '';
+    const role     = c.req.query('r') ?? 'unknown';
+    const user     = decodeURIComponent(c.req.query('u') ?? 'User');
+    const ua       = c.req.header('user-agent') ?? '';
+    if (deviceId) _devices[deviceId] = { role, user, ua, lastSeen: Date.now() };
+    return c.json({ state: _syncState, ts: _syncTs, devices: activeDeviceList() });
+});
+
+// POST /sync/state  { state, ts, deviceId?, role?, user? }
+// Stores state if ts is newer. Also registers the caller as a live device.
+app.post('/sync/state', async (c) => {
+    const body = await c.req.json() as { state?: unknown; ts?: number; deviceId?: string; role?: string; user?: string; };
+    const { state, ts = 0, deviceId, role = 'unknown', user = 'User' } = body;
+    if (ts > _syncTs && state) { _syncState = state; _syncTs = ts; }
+    const ua = c.req.header('user-agent') ?? '';
+    if (deviceId) _devices[deviceId] = { role, user, ua, lastSeen: Date.now() };
+    return c.json({ ok: true, ts: _syncTs, devices: activeDeviceList() });
+});
+
 // ── Start HTTP server ─────────────────────────────────────────────────────────
 const port = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 

@@ -286,10 +286,12 @@ export function emitUpdate(type: MermsUpdateType) {
     window.dispatchEvent(new CustomEvent('domrs:update', { detail: { type } }));
   }
 
-  // ── Cross-device sync via singleton subscribed Supabase channel ──────────
-  // broadcastState() only fires if channel status === 'connected'.
-  // initSyncChannel() is called by useSupabaseSync on mount — so it will
-  // be ready by the time any user action can trigger emitUpdate().
+  // Layer 1: HTTP relay via render.com (GUARANTEED - NEXT_PUBLIC_API_URL is on Vercel)
+  import('@/services/httpSync').then(({ pushStateToBackend }) => {
+    pushStateToBackend();
+  });
+
+  // Layer 2: Supabase Realtime (instant, when env vars are on Vercel)
   import('@/services/syncManager').then(({ broadcastState }) => {
     broadcastState({
       reports:    MOCK_STATE.reports,
@@ -299,7 +301,7 @@ export function emitUpdate(type: MermsUpdateType) {
     });
   });
 
-  // ── Fallback: WS relay for same-network local demo ──────────────────────
+  // Layer 3: WebSocket relay (same-network local demo)
   broadcastToWs();
 }
 
