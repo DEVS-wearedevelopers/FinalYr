@@ -26,17 +26,18 @@
   --text-muted: #94a3b8;
 }
 
-/* ── Dark mode ──────────────────────────────────────────────── */
+/* ── Dark mode — pure B&W, not blue-black ───────────────────── */
+/*    Colours stay only on status badges, CBS scores, alerts.    */
 .dark {
-  --background: #0d1117;
-  --foreground: #e2e8f0;
-  --surface-1: #161b22;
-  --surface-2: #1c2333;
-  --surface-3: #21262d;
-  --border-color: #30363d;
-  --text-primary: #f0f6fc;
-  --text-secondary: #8b949e;
-  --text-muted: #6e7681;
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --surface-1: #141414;      /* cards */
+  --surface-2: #1a1a1a;      /* subtle backgrounds */
+  --surface-3: #242424;      /* inputs, hover states */
+  --border-color: #2e2e2e;
+  --text-primary: #f5f5f5;
+  --text-secondary: #a0a0a0;
+  --text-muted: #6b6b6b;
 }
 
 /* ── Base ───────────────────────────────────────────────────── */
@@ -47,25 +48,38 @@ body {
 }
 
 /* ── Dark overrides for Tailwind bg/text/border ─────────────── */
-.dark .bg-white          { background-color: var(--surface-1) !important; }
-.dark .bg-slate-50       { background-color: var(--surface-2) !important; }
-.dark .bg-slate-100      { background-color: var(--surface-3) !important; }
+
+/* Backgrounds */
+.dark .bg-white          { background-color: var(--surface-1)  !important; }
+.dark .bg-slate-50       { background-color: var(--surface-2)  !important; }
+.dark .bg-slate-100      { background-color: var(--surface-3)  !important; }
+.dark .bg-slate-200      { background-color: #2e2e2e           !important; }
+
+/* Borders */
 .dark .border-slate-100  { border-color: var(--border-color) !important; }
 .dark .border-slate-200  { border-color: var(--border-color) !important; }
-.dark .text-slate-900    { color: var(--text-primary)    !important; }
-.dark .text-slate-800    { color: var(--text-primary)    !important; }
-.dark .text-slate-700    { color: #d1d5db               !important; }
-.dark .text-slate-600    { color: var(--text-secondary)  !important; }
-.dark .text-slate-500    { color: var(--text-secondary)  !important; }
-.dark .text-slate-400    { color: var(--text-muted)      !important; }
 
-/* Sidebar dark */
+/* Text */
+.dark .text-slate-900    { color: var(--text-primary)   !important; }
+.dark .text-slate-800    { color: var(--text-primary)   !important; }
+.dark .text-slate-700    { color: #d4d4d4               !important; }
+.dark .text-slate-600    { color: var(--text-secondary) !important; }
+.dark .text-slate-500    { color: var(--text-secondary) !important; }
+.dark .text-slate-400    { color: var(--text-muted)     !important; }
+
+/* Sidebar */
 .dark aside {
   background-color: var(--surface-1) !important;
   border-color: var(--border-color)  !important;
 }
 
-/* Input/textarea dark */
+/* Header bar */
+.dark header {
+  background-color: var(--surface-1) !important;
+  border-color: var(--border-color)  !important;
+}
+
+/* Inputs / textareas */
 .dark input,
 .dark textarea,
 .dark select {
@@ -74,12 +88,64 @@ body {
   border-color: var(--border-color)  !important;
 }
 
-/* Card dark */
+/* Cards - use surface-1 by default */
 .dark .rounded-2xl.border {
   background-color: var(--surface-1);
+  border-color: var(--border-color) !important;
 }
 
-/* Leaflet popup dark */
+/* Tab pill container */
+.dark .bg-slate-100.rounded-2xl {
+  background-color: var(--surface-3) !important;
+}
+
+/* Active tab pill */
+.dark .bg-white.shadow-sm {
+  background-color: var(--surface-1) !important;
+}
+
+/* Dividers */
+.dark .divide-slate-50 > * + *,
+.dark .divide-y > * + * {
+  border-color: var(--border-color) !important;
+}
+
+/* Hover states — keep neutral */
+.dark .hover\:bg-slate-50:hover  { background-color: var(--surface-3) !important; }
+.dark .hover\:bg-slate-100:hover { background-color: var(--surface-3) !important; }
+
+/* ── Preserve COLOUR tokens in dark — status/badge components ── */
+/*    Green, red, amber, blue, purple pills keep their colour.    */
+/*    We only add specificity here to UNdo the card override.     */
+.dark .bg-green-50   { background-color: rgb(5  40  22  / 0.6) !important; }
+.dark .bg-red-50     { background-color: rgb(60 10  10  / 0.5) !important; }
+.dark .bg-amber-50   { background-color: rgb(60 40  5   / 0.5) !important; }
+.dark .bg-blue-50    { background-color: rgb(10 25  70  / 0.5) !important; }
+.dark .bg-purple-50  { background-color: rgb(35 10  60  / 0.5) !important; }
+.dark .bg-orange-50  { background-color: rgb(60 25  5   / 0.5) !important; }
+
+.dark .border-green-100,
+.dark .border-green-200  { border-color: rgb(22 101 52 / 0.4) !important; }
+.dark .border-red-100,
+.dark .border-red-200    { border-color: rgb(153 27 27 / 0.4) !important; }
+.dark .border-amber-100,
+.dark .border-amber-200  { border-color: rgb(120 80 20 / 0.4) !important; }
+.dark .border-blue-100,
+.dark .border-blue-200   { border-color: rgb(30 60 150 / 0.4) !important; }
+.dark .border-purple-200 { border-color: rgb(88 28 135 / 0.4) !important; }
+
+/* Keep colour text on status badges */
+.dark .text-green-700 { color: #4ade80 !important; }
+.dark .text-red-700   { color: #f87171 !important; }
+.dark .text-amber-700 { color: #fbbf24 !important; }
+.dark .text-blue-700  { color: #60a5fa !important; }
+.dark .text-blue-800  { color: #93c5fd !important; }
+.dark .text-blue-900  { color: #bfdbfe !important; }
+.dark .text-purple-800 { color: #c4b5fd !important; }
+.dark .text-purple-900 { color: #ddd6fe !important; }
+.dark .text-orange-700 { color: #fb923c !important; }
+
+/* ── Leaflet popup dark ───────────────────────────────────────── */
 .dark .leaflet-popup-content-wrapper {
   background: var(--surface-1);
   color: var(--text-primary);

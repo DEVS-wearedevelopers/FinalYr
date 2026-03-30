@@ -87,7 +87,7 @@ export default function InstitutionReports() {
             </div>
 
             {/* Stat cards */}
-            <div className="grid grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                 <div className="bg-white rounded-2xl border border-slate-200 p-5 text-center shadow-sm">
                     <p className="text-3xl font-black text-slate-900">{counts.all}</p>
                     <p className="text-xs font-bold text-slate-500 mt-1 uppercase tracking-wide">Total Reports</p>
@@ -122,8 +122,8 @@ export default function InstitutionReports() {
 
             {/* Table */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                {/* Header */}
-                <div className="grid grid-cols-[70px_60px_1fr_80px_80px_100px_32px] gap-3 px-5 py-3 border-b border-slate-100 bg-slate-50/60">
+                {/* Table header — desktop only */}
+                <div className="hidden sm:grid grid-cols-[70px_60px_1fr_80px_80px_100px_32px] gap-3 px-5 py-3 border-b border-slate-100 bg-slate-50/60">
                     {['Time', 'Source', 'Symptoms', 'Patients', 'Severity', 'Status', ''].map(h => (
                         <p key={h} className="text-xs font-bold text-slate-400 uppercase tracking-wider">{h}</p>
                     ))}
@@ -142,31 +142,53 @@ export default function InstitutionReports() {
                     {visible.map(r => (
                         <React.Fragment key={r.id}>
                             <div onClick={() => setExpanded(expanded === r.id ? null : r.id)}
-                                className="grid grid-cols-[70px_60px_1fr_80px_80px_100px_32px] gap-3 items-center px-5 py-3.5 hover:bg-slate-50/60 cursor-pointer transition-colors">
-                                <p className="text-xs text-slate-500 font-medium">{rel(r.created_at)}</p>
-                                <span className={`text-xs font-bold px-2 py-0.5 rounded-full border text-center ${
-                                    r.source === 'sentinel' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-green-50 text-green-700 border-green-200'
-                                }`}>
-                                    {r.source === 'sentinel' ? '🏥' : '📍'}
-                                </span>
-                                <p className="text-xs font-semibold text-slate-700 truncate">{r.symptom_matrix.join(' · ') || '—'}</p>
-                                <p className="text-xs font-bold text-slate-800">{r.patient_count} pts</p>
-                                <div className="flex items-center gap-1.5">
-                                    <div className={`w-2 h-2 rounded-full ${
-                                        r.severity >= 8 ? 'bg-red-500' : r.severity >= 5 ? 'bg-amber-500' : 'bg-green-500'
-                                    }`} />
-                                    <span className="text-xs font-bold text-slate-700">{r.severity}/10</span>
+                                className="cursor-pointer transition-colors hover:bg-slate-50/60">
+                                {/* Mobile card layout */}
+                                <div className="sm:hidden px-4 py-3 flex items-start justify-between gap-3">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${
+                                                r.source === 'sentinel' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-green-50 text-green-700 border-green-200'
+                                            }`}>{r.source === 'sentinel' ? 'Sentinel' : 'Community'}</span>
+                                            <span className="text-xs text-slate-400">{rel(r.created_at)}</span>
+                                        </div>
+                                        <p className="text-xs font-semibold text-slate-700 truncate mb-1">{r.symptom_matrix.join(' · ') || '—'}</p>
+                                        <div className="flex items-center gap-2">
+                                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${statusCls(r.status)}`}>{statusLabel(r.status)}</span>
+                                            {r.cbs_score && <span className="text-xs text-slate-500 font-mono">CBS {r.cbs_score.toFixed(2)}</span>}
+                                        </div>
+                                    </div>
+                                    <svg className={`w-4 h-4 text-slate-300 transition-transform shrink-0 mt-1 ${expanded === r.id ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                    </svg>
                                 </div>
-                                <span className={`text-xs font-bold px-2 py-0.5 rounded-full border text-center ${statusCls(r.status)}`}>
-                                    {statusLabel(r.status)}
-                                </span>
-                                <svg className={`w-4 h-4 text-slate-300 transition-transform ${expanded === r.id ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                                </svg>
+                                {/* Desktop table row */}
+                                <div className="hidden sm:grid grid-cols-[70px_60px_1fr_80px_80px_100px_32px] gap-3 items-center px-5 py-3.5">
+                                    <p className="text-xs text-slate-500 font-medium">{rel(r.created_at)}</p>
+                                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full border text-center ${
+                                        r.source === 'sentinel' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-green-50 text-green-700 border-green-200'
+                                    }`}>
+                                        {r.source === 'sentinel' ? 'S' : 'C'}
+                                    </span>
+                                    <p className="text-xs font-semibold text-slate-700 truncate">{r.symptom_matrix.join(' · ') || '—'}</p>
+                                    <p className="text-xs font-bold text-slate-800">{r.patient_count} pts</p>
+                                    <div className="flex items-center gap-1.5">
+                                        <div className={`w-2 h-2 rounded-full ${
+                                            r.severity >= 8 ? 'bg-red-500' : r.severity >= 5 ? 'bg-amber-500' : 'bg-green-500'
+                                        }`} />
+                                        <span className="text-xs font-bold text-slate-700">{r.severity}/10</span>
+                                    </div>
+                                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full border text-center ${statusCls(r.status)}`}>
+                                        {statusLabel(r.status)}
+                                    </span>
+                                    <svg className={`w-4 h-4 text-slate-300 transition-transform ${expanded === r.id ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </div>
                             </div>
 
                             {expanded === r.id && (
-                                <div className="px-5 py-4 bg-slate-50/70 border-t border-slate-100 grid grid-cols-2 gap-6">
+                                <div className="px-4 py-4 bg-slate-50/70 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="space-y-3">
                                         <div>
                                             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Symptoms</p>
