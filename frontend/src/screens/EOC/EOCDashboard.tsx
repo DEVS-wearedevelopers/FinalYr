@@ -2,8 +2,8 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { DashboardLayout, useUserFromToken } from '@/components/DashboardLayout';
 import {
-  mockGetUsers, mockGetAuditLogs, mockGetBroadcasts, mockGetReports,
-  mockToggleUserActive, mockRemoveBroadcast, MOCK_STATE,
+  mockGetUsers, mockGetAuditLogs, mockGetBroadcasts,
+  mockToggleUserActive, mockRemoveBroadcast,
   type AuditLog, type Broadcast,
 } from '@/services/mockData';
 import { useMockSync } from '@/hooks/useMockSync';
@@ -12,6 +12,7 @@ import { useSupabaseSync } from '@/hooks/useSupabaseSync';
 import { useHttpSync } from '@/hooks/useHttpSync';
 import { onLiveDevicesChange, type LiveDevice } from '@/services/httpSync';
 import SyncStatusBadge from '@/components/SyncStatusBadge';
+import { onSyncLogChange, getSyncLogs, type SyncLogEntry, type SyncLogLevel } from '@/services/syncLogger';
 
 // ─── NAV ──────────────────────────────────────────────────────────────────────
 const NAV = [
@@ -50,127 +51,12 @@ function severityBadge(s: AuditLog['severity']) {
   return 'bg-slate-50 text-slate-600 border-slate-200';
 }
 
-// ─── System Log entry type ────────────────────────────────────────────────────
-type SysLog = {
-  id: string;
-  timestamp: string;
-  level: 'INFO' | 'WARN' | 'ERROR' | 'DEBUG';
-  module: string;
-  message: string;
-  detail?: string;
-};
-
-function levelColor(l: SysLog['level']) {
-  if (l === 'ERROR') return 'text-red-600 bg-red-50 border-red-200';
-  if (l === 'WARN')  return 'text-amber-700 bg-amber-50 border-amber-200';
-  if (l === 'DEBUG') return 'text-slate-400 bg-slate-50 border-slate-100';
-  return 'text-blue-700 bg-blue-50 border-blue-100';
-}
-
-function levelDot(l: SysLog['level']) {
-  if (l === 'ERROR') return 'bg-red-500';
-  if (l === 'WARN')  return 'bg-amber-500';
-  if (l === 'DEBUG') return 'bg-slate-400';
-  return 'bg-blue-500';
-}
-
-// ─── Generate realistic system logs from current mock state ───────────────────
-function buildSystemLogs(): SysLog[] {
-  const logs: SysLog[] = [];
-  const now = Date.now();
-
-  const add = (
-    minsAgo: number, level: SysLog['level'], module: string, message: string, detail?: string
-  ) => {
-    logs.push({
-      id: `sys-${minsAgo}-${module}`,
-      timestamp: new Date(now - minsAgo * 60000).toISOString(),
-      level, module, message, detail,
-    });
-  };
-
-  // System boot
-  add(4320, 'INFO',  'BOOT',       'DOMRS application started — offline demo mode');
-  add(4319, 'INFO',  'AUTH',       'Mock auth provider initialized');
-  add(4318, 'INFO',  'MOCKDATA',   'Seed data loaded: 2 reports, 1 alert, 1 broadcast');
-  add(4317, 'INFO',  'MAP',        'Leaflet tile server connected — openstreetmap.org');
-  add(4315, 'DEBUG', 'ROUTER',     'App router initialized — 22 static routes generated');
-
-  // Auth events
-  add(2880, 'INFO',  'AUTH',       'Login: eoc@domrs.demo (EOC Admin) — success');
-  add(2879, 'INFO',  'AUTH',       'Login: hospital@domrs.demo (Institution) — success');
-  add(2878, 'INFO',  'AUTH',       'Login: pho@domrs.demo (PHO) — success');
-
-  // CBS scoring
-  const reports = MOCK_STATE.reports;
-  reports.forEach((r, i) => {
-    const minsAgo = Math.floor((now - new Date(r.created_at).getTime()) / 60000);
-    add(minsAgo - 1, 'INFO', 'CBS-ENGINE',
-      `CBS score computed: ${r.cbs_score?.toFixed(3)} for report ${r.id}`,
-      `source=${r.source} severity=${r.severity} symptoms=${r.symptom_matrix.length}`);
-    if (r.cbs_score && r.cbs_score >= 0.85) {
-      add(minsAgo - 2, 'WARN', 'CBS-ENGINE',
-        `High-risk threshold breached (CBS=${r.cbs_score.toFixed(2)}) — auto-alert raised`,
-        `report_id=${r.id} zone=Lagos Island`);
-    }
-  });
-
-  // Alert events
-  const alerts = MOCK_STATE.alerts;
-  alerts.forEach(a => {
-    const minsAgo = Math.floor((now - new Date(a.created_at).getTime()) / 60000);
-    add(minsAgo, 'INFO', 'ALERT-MGR',
-      `Alert created: ${a.id} [status=${a.status}] CBS=${a.cbs_score}`,
-      `zone=${a.zone_id} report=${a.report_id}`);
-    if (a.bypass_reason) {
-      add(minsAgo + 1, 'WARN', 'BYPASS',
-        `Auto-bypass triggered: ${a.bypass_reason}`,
-        `alert_id=${a.id}`);
-    }
-  });
-
-  // Broadcast events
-  const broadcasts = MOCK_STATE.broadcasts;
-  broadcasts.forEach(b => {
-    const minsAgo = Math.floor((now - new Date(b.created_at).getTime()) / 60000);
-    add(minsAgo, 'WARN', 'BROADCAST',
-      `Broadcast issued: "${b.title}" [type=${b.type}]`,
-      `zone=${b.zone} issuer=${b.issued_by}`);
-    if (b.type === 'lockdown') {
-      add(minsAgo + 1, 'ERROR', 'BROADCAST',
-        `⚠️ LOCKDOWN broadcast dispatched — zone=${b.zone}`,
-        `All area entities notified. Emergency protocol activated.`);
-    }
-  });
-
-  // Legacy HTTP attempts — now fully mocked, shown as WARN not ERROR
-  add(120, 'WARN',  'HTTP-CLIENT',
-    'GET /alerts/national → intercepted (offline mode) — routed to mockData',
-    'alertsService is fully mocked. No network call was made. No action needed.');
-  add(119, 'WARN',  'HTTP-CLIENT',
-    'Supabase realtime subscription skipped — offline mode active',
-    'Mock data store is the source of truth for this session.');
-  add(118, 'INFO',  'MOCK-SERVICE',
-    'alertsService → fully mocked: all methods return MOCK_STATE data');
-  add(117, 'INFO',  'MOCK-SERVICE',
-    'reportsService → fully mocked: getReportsFeed() returns MOCK_STATE.reports');
-
-  // Map events
-  add(110, 'INFO',  'MAP',     'CivilianMap initialized — Lagos center [6.524, 3.379] zoom=11');
-  add(109, 'INFO',  'MAP',     `Map pins loaded: ${MOCK_STATE.reports.filter(r => r.origin_lat).length} reports with coordinates`);
-  add(108, 'DEBUG', 'MAP',     'PHOLiveMap auto-refresh interval set: 5000ms');
-
-  // AI analysis
-  if (MOCK_STATE.analyses.length > 0) {
-    const a = MOCK_STATE.analyses[0];
-    const minsAgo = Math.floor((now - new Date(a.generated_at).getTime()) / 60000);
-    add(minsAgo, 'INFO', 'AI-ENGINE',
-      `Analysis generated — risk=${a.risk_level} trend=${a.trend} hotspot=${a.hotspot}`,
-      `patients=${a.total_patients} sentinel=${a.sentinel_count} community=${a.community_count}`);
-  }
-
-  // Sort newest first
-  return logs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+function levelColor(l: SyncLogLevel) {
+  if (l === 'ERROR')   return 'text-red-300 bg-red-950/40 border-red-800';
+  if (l === 'WARN')    return 'text-amber-300 bg-amber-950/40 border-amber-800';
+  if (l === 'SUCCESS') return 'text-green-300 bg-green-950/40 border-green-800';
+  if (l === 'DEBUG')   return 'text-slate-500 bg-slate-800/40 border-slate-700';
+  return 'text-blue-300 bg-blue-950/40 border-blue-900';
 }
 
 // ─── Confirm Dialog ───────────────────────────────────────────────────────────
@@ -197,8 +83,8 @@ export default function EOCDashboard() {
   const [users, setUsers]           = useState(mockGetUsers());
   const [logs, setLogs]             = useState<AuditLog[]>([]);
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
-  const [sysLogs, setSysLogs]       = useState<SysLog[]>([]);
-  const [sysFilter, setSysFilter]   = useState<'all' | 'ERROR' | 'WARN' | 'INFO'>('all');
+  const [sysLogs, setSysLogs]       = useState<SyncLogEntry[]>([]);
+  const [sysFilter, setSysFilter]   = useState<'all' | 'ERROR' | 'WARN' | 'INFO' | 'SUCCESS' | 'DEBUG'>('all');
   const [toast, setToast]           = useState('');
   const [confirm, setConfirm]       = useState<null | { message: string; action: () => void }>(null);
   const [liveDevices, setLiveDevices] = useState<LiveDevice[]>([]);
@@ -208,12 +94,18 @@ export default function EOCDashboard() {
     setUsers(mockGetUsers());
     setLogs(mockGetAuditLogs());
     setBroadcasts(mockGetBroadcasts());
-    setSysLogs(buildSystemLogs());
   }, []);
   useMockSync(load);
   useWsSync(load);
   useSupabaseSync(load);
   useHttpSync(load, 'eoc'); // polls render.com, also populates liveDevices
+
+  // Live sync log — auto-refreshes on every new entry
+  useEffect(() => {
+    setSysLogs(getSyncLogs());
+    const unsub = onSyncLogChange(() => setSysLogs(getSyncLogs()));
+    return unsub;
+  }, []);
 
   useEffect(() => onLiveDevicesChange(setLiveDevices), []);
 
@@ -227,7 +119,7 @@ export default function EOCDashboard() {
         mockToggleUserActive(userId, !currentActive);
         setUsers(mockGetUsers());
         setLogs(mockGetAuditLogs());
-        setSysLogs(buildSystemLogs());
+        // sysLogs auto-refresh via syncLogger subscription
         showToast(`${user.name} ${!currentActive ? 'activated' : 'deactivated'}`);
         setConfirm(null);
       },
@@ -241,18 +133,15 @@ export default function EOCDashboard() {
     showToast('Broadcast removed');
   };
 
-  const refreshSysLogs = () => {
-    setSysLogs(buildSystemLogs());
-    showToast('System logs refreshed');
-  };
+
 
   // Stats
   const activeUsers      = users.filter(u => u.active).length;
   const pendingUsers     = users.filter(u => !u.active).length;
   const criticalLogs     = logs.filter(l => l.severity === 'critical').length;
   const activeBroadcasts = broadcasts.filter(b => b.active).length;
-  const sysErrors        = sysLogs.filter(l => l.level === 'ERROR').length;
-  const sysWarns         = sysLogs.filter(l => l.level === 'WARN').length;
+  const sysErrors = sysLogs.filter(l => l.level === 'ERROR').length;
+  const sysWarns  = sysLogs.filter(l => l.level === 'WARN').length;
 
   const visibleSysLogs = sysFilter === 'all' ? sysLogs : sysLogs.filter(l => l.level === sysFilter);
 
@@ -286,15 +175,15 @@ export default function EOCDashboard() {
         </div>
       </div>
 
-      {/* ── Stat Cards ── */}
+      {/* ── Stats ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 mb-6">
         {[
           { label: 'Active Users',      value: activeUsers,      color: 'bg-green-50 text-green-700 border-green-100',  icon: '✅' },
           { label: 'Deactivated',       value: pendingUsers,     color: 'bg-slate-50 text-slate-600 border-slate-200',  icon: '🚫' },
           { label: 'Active Broadcasts', value: activeBroadcasts, color: 'bg-amber-50 text-amber-700 border-amber-100',  icon: '📢' },
           { label: 'Critical Events',   value: criticalLogs,     color: 'bg-red-50 text-red-700 border-red-100',        icon: '🚨' },
-          { label: 'Sys Errors',        value: sysErrors,        color: sysErrors > 0 ? 'bg-red-50 text-red-700 border-red-100' : 'bg-slate-50 text-slate-600 border-slate-200', icon: '💥' },
-          { label: 'Sys Warnings',      value: sysWarns,         color: sysWarns > 3 ? 'bg-amber-50 text-amber-700 border-amber-100' : 'bg-slate-50 text-slate-600 border-slate-200', icon: '⚠️' },
+          { label: 'Sync Errors',       value: sysErrors,        color: sysErrors > 0 ? 'bg-red-50 text-red-700 border-red-100' : 'bg-slate-50 text-slate-600 border-slate-200', icon: '💥' },
+          { label: 'Sync Warnings',     value: sysWarns,         color: sysWarns > 3 ? 'bg-amber-50 text-amber-700 border-amber-100' : 'bg-slate-50 text-slate-600 border-slate-200', icon: '⚠️' },
         ].map(card => (
           <div key={card.label} className={`rounded-2xl border p-4 ${card.color}`}>
             <p className="text-xs font-bold opacity-70 uppercase tracking-wide">{card.label}</p>
@@ -444,16 +333,16 @@ export default function EOCDashboard() {
       {/* ── SYSTEM LOGS TAB ── */}
       {activeTab === 'system' && (
         <div className="space-y-4">
-          {/* Error / warn summary */}
+          {/* Sync error summary */}
           {(sysErrors > 0 || sysWarns > 0) && (
             <div className={`rounded-2xl p-4 border flex items-start gap-3 ${sysErrors > 0 ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'}`}>
               <span className="text-xl">{sysErrors > 0 ? '💥' : '⚠️'}</span>
               <div>
                 <p className={`text-sm font-bold ${sysErrors > 0 ? 'text-red-800' : 'text-amber-800'}`}>
-                  {sysErrors > 0 ? `${sysErrors} error(s) detected` : `${sysWarns} warning(s) detected`}
+                  {sysErrors > 0 ? `${sysErrors} sync error(s) detected` : `${sysWarns} sync warning(s)`}
                 </p>
                 <p className={`text-xs mt-0.5 ${sysErrors > 0 ? 'text-red-700' : 'text-amber-700'}`}>
-                  Most are expected in offline demo mode — HTTP client timeouts are automatically bypassed by the mock layer.
+                  Check WS-RELAY and HTTP-RELAY entries. Errors here mean cross-device sync may be degraded.
                 </p>
               </div>
             </div>
@@ -464,60 +353,62 @@ export default function EOCDashboard() {
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 gap-3 flex-wrap">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                <h2 className="text-sm font-bold text-slate-800">Application &amp; Error Logs</h2>
-                <span className="text-xs text-slate-400">({visibleSysLogs.length}/{sysLogs.length})</span>
+                <h2 className="text-sm font-bold text-slate-800">Live Sync Log</h2>
+                <span className="text-xs text-slate-400">({visibleSysLogs.length}/{sysLogs.length} entries · streams in real time)</span>
               </div>
               <div className="flex items-center gap-2">
+                {/* Transport status pills */}
+                <SyncStatusBadge />
+                <div className="h-4 w-px bg-slate-200" />
                 <div className="flex gap-1 bg-slate-100 rounded-xl p-1">
-                  {(['all', 'ERROR', 'WARN', 'INFO'] as const).map(f => (
+                  {(['all', 'ERROR', 'WARN', 'SUCCESS', 'INFO', 'DEBUG'] as const).map(f => (
                     <button key={f} onClick={() => setSysFilter(f)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                      className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all ${
                         sysFilter === f ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700'
                       } ${f === 'ERROR' && sysFilter !== 'ERROR' && sysErrors > 0 ? 'text-red-500' : ''}`}>
                       {f === 'all' ? 'All' : f}
                     </button>
                   ))}
                 </div>
-                <button onClick={refreshSysLogs}
-                  className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 px-3 py-1.5 rounded-xl border border-slate-200 hover:border-slate-300 transition-all">
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                  Refresh
-                </button>
               </div>
             </div>
 
-            {/* Log entries — terminal style */}
-            <div className="overflow-y-auto max-h-[60vh] font-mono divide-y divide-slate-50 bg-slate-900 rounded-b-2xl">
+            {/* Log entries — terminal style, live streaming */}
+            <div className="overflow-y-auto max-h-[60vh] font-mono divide-y divide-white/5 bg-slate-950 rounded-b-2xl">
               {visibleSysLogs.map(log => (
-                <div key={log.id} className={`px-5 py-2.5 flex items-start gap-3 hover:bg-white/5 transition-colors group ${
-                  log.level === 'ERROR' ? 'border-l-2 border-red-500' :
-                  log.level === 'WARN'  ? 'border-l-2 border-amber-500' : ''
+                <div key={log.id} className={`px-5 py-2.5 flex items-start gap-3 hover:bg-white/5 transition-colors ${
+                  log.level === 'ERROR'   ? 'border-l-2 border-red-500' :
+                  log.level === 'WARN'    ? 'border-l-2 border-amber-500' :
+                  log.level === 'SUCCESS' ? 'border-l-2 border-green-500' : ''
                 }`}>
                   {/* Timestamp */}
-                  <span className="text-slate-500 text-xs shrink-0 mt-0.5 hidden sm:block">
-                    {new Date(log.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                  <span className="text-slate-600 text-[10px] shrink-0 mt-0.5 hidden sm:block tabular-nums">
+                    {new Date(log.ts).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                   </span>
                   {/* Level badge */}
-                  <span className={`text-xs font-black px-2 py-0.5 rounded border shrink-0 w-14 text-center ${levelColor(log.level)}`}>
+                  <span className={`text-[10px] font-black px-1.5 py-0.5 rounded border shrink-0 w-16 text-center ${levelColor(log.level)}`}>
                     {log.level}
                   </span>
                   {/* Module */}
-                  <span className="text-slate-400 text-xs font-bold shrink-0 w-24 truncate">[{log.module}]</span>
+                  <span className="text-slate-500 text-[10px] font-bold shrink-0 w-28 truncate">[{log.module}]</span>
                   {/* Message */}
                   <div className="flex-1 min-w-0">
                     <p className={`text-xs leading-relaxed ${
-                      log.level === 'ERROR' ? 'text-red-300' :
-                      log.level === 'WARN'  ? 'text-amber-300' :
-                      log.level === 'DEBUG' ? 'text-slate-500' : 'text-slate-300'
+                      log.level === 'ERROR'   ? 'text-red-300' :
+                      log.level === 'WARN'    ? 'text-amber-300' :
+                      log.level === 'SUCCESS' ? 'text-green-300' :
+                      log.level === 'DEBUG'   ? 'text-slate-500' : 'text-slate-300'
                     }`}>{log.message}</p>
                     {log.detail && (
-                      <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">{log.detail}</p>
+                      <p className="text-[10px] text-slate-600 mt-0.5 leading-relaxed font-mono">{log.detail}</p>
                     )}
                   </div>
                 </div>
               ))}
               {visibleSysLogs.length === 0 && (
-                <div className="py-8 text-center text-xs text-slate-500">No logs match filter</div>
+                <div className="py-10 text-center text-xs text-slate-600">
+                  No entries yet — sync activity will appear here automatically
+                </div>
               )}
               <div ref={logEndRef} />
             </div>

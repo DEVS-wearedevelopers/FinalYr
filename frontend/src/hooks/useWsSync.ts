@@ -10,6 +10,7 @@
  */
 import { useEffect, useRef } from 'react';
 import { MOCK_STATE } from '@/services/mockData';
+import { syncLog } from '@/services/syncLogger';
 
 // WS is on the SAME port as the HTTP API — just swap the scheme.
 // Works for: localhost:3001, 192.168.x.x:3001, merms-backend.onrender.com
@@ -49,11 +50,13 @@ export function useWsSync(onUpdate?: () => void) {
       ws.onopen = () => {
         console.log('[WS] Connected to sync server');
         retryDelay.current = 1000; // reset backoff on success
+        syncLog.success('WS-RELAY', `Connected to sync server`, `url=${url} clients≥1`);
 
         // Keep-alive ping every 25 s
         const ping = setInterval(() => {
           if (ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ type: 'ping' }));
+            syncLog.debug('WS-RELAY', 'Heartbeat ping sent');
           }
         }, 25_000);
         (ws as any)._pingInterval = ping;
@@ -62,33 +65,45 @@ export function useWsSync(onUpdate?: () => void) {
       ws.onmessage = (evt) => {
         try {
           const msg = JSON.parse(evt.data as string);
+          if (msg.type === 'pong') {
+            syncLog.debug('WS-RELAY', 'Pong received ← server alive');
+            return;
+          }
           if (msg.type === 'state' && msg.payload) {
             // Merge directly into MOCK_STATE
             const p = msg.payload;
-            if (Array.isArray(p.reports))    MOCK_STATE.reports    = p.reports;
-            if (Array.isArray(p.alerts))     MOCK_STATE.alerts     = p.alerts;
-            if (Array.isArray(p.broadcasts)) MOCK_STATE.broadcasts = p.broadcasts;
-            if (Array.isArray(p.auditLogs))  MOCK_STATE.auditLogs  = p.auditLogs;
+            let changed = false;
+            if (Array.isArray(p.reports))    { MOCK_STATE.reports    = p.reports;    changed = true; }
+            if (Array.isArray(p.alerts))     { MOCK_STATE.alerts     = p.alerts;     changed = true; }
+            if (Array.isArray(p.broadcasts)) { MOCK_STATE.broadcasts = p.broadcasts; changed = true; }
+            if (Array.isArray(p.auditLogs))  { MOCK_STATE.auditLogs  = p.auditLogs;  changed = true; }
 
-            // Fire the same-tab event so every dashboard re-renders
-            window.dispatchEvent(new CustomEvent('domrs:update', { detail: { type: 'ws' } }));
-            onUpdate?.();
+            if (changed) {
+              syncLog.info('WS-RELAY', `State received from remote device`,
+                `reports=${p.reports?.length ?? '?'} alerts=${p.alerts?.length ?? '?'} broadcasts=${p.broadcasts?.length ?? '?'}`);
+              // Fire the same-tab event so every dashboard re-renders
+              window.dispatchEvent(new CustomEvent('domrs:update', { detail: { type: 'ws' } }));
+              onUpdate?.();
+            }
           }
         } catch { /* ignore malformed */ }
       };
 
-      ws.onclose = () => {
+      ws.onclose = (evt) => {
         clearInterval((ws as any)._pingInterval);
+        syncLog.warn('WS-RELAY', `Disconnected (code=${evt.code})`, destroyed.current ? 'intentional unmount' : `reconnecting in ${retryDelay.current}ms`);
         if (!destroyed.current) scheduleReconnect();
       };
 
-      ws.onerror = () => {
+      ws.onerror = (err) => {
+        syncLog.error('WS-RELAY', 'WebSocket error — closing', String((err as ErrorEvent).message ?? ''));
         ws.close(); // triggers onclose → reconnect
       };
     }
 
     function scheduleReconnect() {
       if (destroyed.current) return;
+      syncLog.info('WS-RELAY', `Scheduling reconnect in ${retryDelay.current}ms`);
       retryRef.current = setTimeout(() => {
         retryDelay.current = Math.min(retryDelay.current * 2, 15_000); // cap at 15 s
         connect();

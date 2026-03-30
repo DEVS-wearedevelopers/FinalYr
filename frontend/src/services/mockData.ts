@@ -286,6 +286,12 @@ export function emitUpdate(type: MermsUpdateType) {
     window.dispatchEvent(new CustomEvent('domrs:update', { detail: { type } }));
   }
 
+  // Log the mutation event
+  import('@/services/syncLogger').then(({ syncLog }) => {
+    syncLog.info('MOCK-STATE', `State mutated: ${type}`,
+      `reports=${MOCK_STATE.reports.length} alerts=${MOCK_STATE.alerts.length} broadcasts=${MOCK_STATE.broadcasts.length}`);
+  });
+
   // Layer 1: HTTP relay via render.com (GUARANTEED - NEXT_PUBLIC_API_URL is on Vercel)
   import('@/services/httpSync').then(({ pushStateToBackend }) => {
     pushStateToBackend();
