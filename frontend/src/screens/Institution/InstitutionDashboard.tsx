@@ -9,6 +9,8 @@ import {
   type Report, type Broadcast,
 } from '@/services/mockData';
 import { useMockSync } from '@/hooks/useMockSync';
+import { useWsSync } from '@/hooks/useWsSync';
+import { useSupabaseSync } from '@/hooks/useSupabaseSync';
 import type { CivilianMapHandle } from '@/screens/Civilian/CivilianMap';
 
 // Load map with no SSR — shares same map component as civilian view
@@ -208,7 +210,9 @@ export default function InstitutionDashboard() {
     setBroadcasts(mockGetBroadcasts().filter(b => b.active));
   };
 
-  useMockSync(load); // same-tab + cross-tab sync
+  useMockSync(load);       // same-tab + cross-tab (same browser)
+  useWsSync(load);         // same-network local demo fallback
+  useSupabaseSync(load);   // ✅ cross-device: phone ↔ PC via Vercel
 
   const showToast = (m: string) => { setToast(m); setTimeout(() => setToast(''), 4000); };
 
