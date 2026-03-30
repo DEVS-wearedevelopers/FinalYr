@@ -76,11 +76,20 @@ export function initSyncChannel() {
     })
     .subscribe((status) => {
       console.log('[SyncManager] Supabase channel status:', status);
-      if (status === 'SUBSCRIBED')                setStatus('connected');
-      else if (status === 'CHANNEL_ERROR')        setStatus('error');
-      else if (status === 'TIMED_OUT')            setStatus('error');
-      else if (status === 'CLOSED')               setStatus('disabled');
-      else                                        setStatus('connecting');
+      if (status === 'SUBSCRIBED') {
+        setStatus('connected');
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        setStatus('error');
+        // Auto-retry: tear down and reconnect after 5s
+        // Handles Supabase project waking up from pause — no page refresh needed
+        console.log('[SyncManager] Retrying in 5s…');
+        if (_channel) { supabase.removeChannel(_channel); _channel = null; }
+        setTimeout(() => { initSyncChannel(); }, 5000);
+      } else if (status === 'CLOSED') {
+        setStatus('disabled');
+      } else {
+        setStatus('connecting');
+      }
     });
 }
 
